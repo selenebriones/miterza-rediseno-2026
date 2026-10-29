@@ -1,0 +1,521 @@
+// Mi Terza — esquema inicial.
+// Cubre: usuarios y auth (Auth.js), catálogo, navegación, home, páginas y FAQ.
+// Incluye pedidos y métodos de pago; direcciones guardadas llegan con las cuentas de cliente.
+
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// ─────────────────────────────────────────────
+// Usuarios y autenticación (modelos de @auth/prisma-adapter)
+// ─────────────────────────────────────────────
+
+enum Role {
+  CUSTOMER
+  ADMIN
+}
+
+// Permisos por módulo del panel. Un ADMIN sin permisos solo ve el dashboard;
+// SUPER_ADMIN tiene acceso total y es el único que gestiona otros administradores.
+enum AdminPermission {
+  SUPER_ADMIN
+  MANAGE_CONTENT
+  MANAGE_CATALOG
+  MANAGE_ORDERS
+  MANAGE_PAYMENTS
+  MANAGE_CUSTOMERS
+}
+
+model User {
+  id            String            @id @default(cuid())
+  name          String?
+  email         String            @unique
+  emailVerified DateTime?
+  image         String?
+  passwordHash  String? // null si solo entra con proveedor externo
+  phone         String?
+  role          Role              @default(CUSTOMER)
+  permissions   AdminPermission[]
+  isActive      Boolean           @default(true)
+  lastLoginAt   DateTime?
+
+  accounts      Account[]
+  sessions      Session[]
+  orders        Order[]
+  statusChanges OrderStatusChange[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([role])
+}
+
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String? @db.Text
+  access_token      String? @db.Text
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String? @db.Text
+  session_state     String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+  @@index([userId])
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+}
+
+// ─────────────────────────────────────────────
+// Catálogo
+// ─────────────────────────────────────────────
+
+model Category {
+  id              String  @id @default(cuid())
+  name            String
+  slug            String  @unique
+  description     String? @db.Text
+  imageUrl        String?
+  imageAlt        String?
+  parentId        String?
+  position        Int     @default(0)
+  isVisible       Boolean @default(true)
+  showInHome      Boolean @default(false) // aparece en el carrusel de categorías del home
+  installVideoUrl String? // tutorial de medidas e instalación de la línea (persianas)
+
+  seoTitle       String?
+  seoDescription String?
+
+  parent    Category?  @relation("CategoryTree", fields: [parentId], references: [id], onDelete: SetNull)
+  children  Category[] @relation("CategoryTree")
+  products  Product[]
+  menuItems MenuItem[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([parentId, position])
+}
+
+enum ProductStatus {
+  DRAFT
+  ACTIVE
+  ARCHIVED
+}
+
+model Product {
+  id               String        @id @default(cuid())
+  name             String
+  slug             String        @unique
+  shortDescription String?
+  description      String?       @db.Text
+  brand            String?
+  status           ProductStatus @default(DRAFT)
+  isFeatured       Boolean       @default(false) // sección "Productos destacados" del home
+  specs            Json? // ficha técnica: [{ "label": "Línea", "value": "Optima" }]
+
+  // Precio "desde" que se muestra en listados; se recalcula al guardar variantes.
+  price          Decimal  @db.Decimal(10, 2)
+  compareAtPrice Decimal? @db.Decimal(10, 2) // precio anterior tachado (oferta)
+
+  seoTitle       String?
+  seoDescription String?
+
+  categories Category[]
+  images     ProductImage[]
+  options    ProductOption[]
+  variants   ProductVariant[]
+
+  publishedAt DateTime?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  @@index([status, isFeatured])
+  @@index([status, price])
+}
+
+model ProductImage {
+  id        String  @id @default(cuid())
+  productId String
+  variantId String? // si la imagen corresponde a una variante (p. ej. un color)
+  url       String
+  publicId  String? // id en Cloudinary / key en S3, para borrar o transformar
+  alt       String
+  width     Int?
+  height    Int?
+  position  Int     @default(0)
+
+  product Product         @relation(fields: [productId], references: [id], onDelete: Cascade)
+  variant ProductVariant? @relation(fields: [variantId], references: [id], onDelete: SetNull)
+
+  @@index([productId, position])
+}
+
+// Ejes de variación: "Color", "Talla"…
+model ProductOption {
+  id        String @id @default(cuid())
+  productId String
+  name      String
+  position  Int    @default(0)
+
+  product Product              @relation(fields: [productId], references: [id], onDelete: Cascade)
+  values  ProductOptionValue[]
+
+  @@unique([productId, name])
+}
+
+model ProductOptionValue {
+  id       String  @id @default(cuid())
+  optionId String
+  value    String // "Rojo", "M"
+  swatch   String? // color hex o url de miniatura para el selector visual
+  position Int     @default(0)
+
+  option   ProductOption        @relation(fields: [optionId], references: [id], onDelete: Cascade)
+  variants VariantOptionValue[]
+
+  @@unique([optionId, value])
+}
+
+// Todo producto tiene al menos una variante (la "predeterminada" si no hay opciones):
+// el stock, el SKU y el precio final viven aquí.
+model ProductVariant {
+  id             String   @id @default(cuid())
+  productId      String
+  sku            String   @unique
+  price          Decimal  @db.Decimal(10, 2)
+  compareAtPrice Decimal? @db.Decimal(10, 2)
+  stock          Int      @default(0)
+  lowStockAlert  Int      @default(5) // debajo de este número se muestra "Últimas piezas"
+  weightGrams    Int?
+  isDefault      Boolean  @default(false)
+  isActive       Boolean  @default(true)
+  position       Int      @default(0)
+
+  product      Product              @relation(fields: [productId], references: [id], onDelete: Cascade)
+  optionValues VariantOptionValue[]
+  images       ProductImage[]
+  orderItems   OrderItem[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([productId, position])
+}
+
+model VariantOptionValue {
+  variantId     String
+  optionValueId String
+
+  variant     ProductVariant     @relation(fields: [variantId], references: [id], onDelete: Cascade)
+  optionValue ProductOptionValue @relation(fields: [optionValueId], references: [id], onDelete: Cascade)
+
+  @@id([variantId, optionValueId])
+}
+
+// ─────────────────────────────────────────────
+// Navegación
+// ─────────────────────────────────────────────
+
+enum MenuLocation {
+  HEADER_MAIN // barra de categorías (desktop) y menú lateral (móvil)
+  HEADER_TOP // enlaces pequeños de la barra superior
+  FOOTER
+  FOOTER_LEGAL
+}
+
+enum MenuLinkType {
+  CATEGORY
+  PAGE
+  CUSTOM_URL
+}
+
+model Menu {
+  id       String       @id @default(cuid())
+  name     String
+  location MenuLocation @unique
+  items    MenuItem[]
+
+  updatedAt DateTime @updatedAt
+}
+
+model MenuItem {
+  id           String       @id @default(cuid())
+  menuId       String
+  parentId     String? // submenús / columnas del mega menú
+  label        String
+  linkType     MenuLinkType @default(CUSTOM_URL)
+  url          String? // si linkType = CUSTOM_URL
+  categoryId   String?
+  pageId       String?
+  position     Int          @default(0)
+  isVisible    Boolean      @default(true)
+  isHighlight  Boolean      @default(false) // p. ej. "Ofertas" con fondo accent
+  openInNewTab Boolean      @default(false)
+
+  menu     Menu       @relation(fields: [menuId], references: [id], onDelete: Cascade)
+  parent   MenuItem?  @relation("MenuTree", fields: [parentId], references: [id], onDelete: Cascade)
+  children MenuItem[] @relation("MenuTree")
+  category Category?  @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+  page     Page?      @relation(fields: [pageId], references: [id], onDelete: Cascade)
+
+  @@index([menuId, parentId, position])
+}
+
+// ─────────────────────────────────────────────
+// Home
+// ─────────────────────────────────────────────
+
+enum BannerPlacement {
+  HOME_HERO // carrusel principal
+  HOME_PROMO // banners intermedios
+  ANNOUNCEMENT // barra de aviso del header (solo texto + enlace)
+}
+
+model Banner {
+  id            String          @id @default(cuid())
+  placement     BannerPlacement @default(HOME_HERO)
+  title         String
+  subtitle      String?
+  ctaLabel      String?
+  ctaUrl        String?
+  imageDesktop  String?
+  imageMobile   String? // recorte vertical para móvil; si falta se usa imageDesktop
+  imagePublicId String?
+  imageAlt      String?
+  theme         String          @default("light") // "light" | "dark": color del texto sobre la imagen
+  position      Int             @default(0)
+  isActive      Boolean         @default(true)
+  startsAt      DateTime? // programación de campañas
+  endsAt        DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([placement, isActive, position])
+}
+
+enum HomeSectionType {
+  HERO_BANNERS
+  CATEGORY_CAROUSEL
+  FEATURED_PRODUCTS
+  PROMO_BANNERS
+  VALUE_PROPOSITION
+  INSTALL_GUIDE // tutoriales de medidas e instalación
+}
+
+// Orden y visibilidad de los bloques del home, administrable desde el panel.
+model HomeSection {
+  id       String          @id @default(cuid())
+  type     HomeSectionType @unique
+  title    String?
+  subtitle String?
+  position Int             @default(0)
+  isActive Boolean         @default(true)
+  settings Json? // p. ej. { "limit": 8 } o los ítems de la propuesta de valor
+
+  updatedAt DateTime @updatedAt
+
+  @@index([isActive, position])
+}
+
+// ─────────────────────────────────────────────
+// Páginas de contenido, FAQ y equipo
+// ─────────────────────────────────────────────
+
+enum PageType {
+  POLICY // /politicas/[slug]
+  GENERIC
+}
+
+model Page {
+  id             String   @id @default(cuid())
+  type           PageType @default(POLICY)
+  slug           String   @unique // "privacidad", "devoluciones", "cancelacion", "cookies"
+  title          String
+  content        String   @db.Text // HTML saneado del editor del panel
+  seoTitle       String?
+  seoDescription String?
+  isPublished    Boolean  @default(true)
+
+  menuItems MenuItem[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt // se muestra como "Última actualización"
+}
+
+model FaqCategory {
+  id       String    @id @default(cuid())
+  name     String // "Envíos", "Pagos", "Devoluciones"
+  slug     String    @unique
+  position Int       @default(0)
+  items    FaqItem[]
+}
+
+model FaqItem {
+  id          String  @id @default(cuid())
+  categoryId  String?
+  question    String
+  answer      String  @db.Text
+  position    Int     @default(0)
+  isPublished Boolean @default(true)
+
+  category FaqCategory? @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+
+  updatedAt DateTime @updatedAt
+
+  @@index([categoryId, position])
+}
+
+// /nosotros: solo nombres del equipo, sin enlaces.
+model TeamMember {
+  id        String  @id @default(cuid())
+  name      String
+  jobTitle  String?
+  position  Int     @default(0)
+  isVisible Boolean @default(true)
+}
+
+// ─────────────────────────────────────────────
+// Ventas: métodos de pago y pedidos
+// ─────────────────────────────────────────────
+
+enum PaymentProvider {
+  BANK_TRANSFER // transferencia o depósito
+  STRIPE
+  MERCADO_PAGO
+  CONEKTA
+}
+
+// Métodos que el panel puede habilitar/deshabilitar. Las llaves secretas de cada
+// pasarela van en variables de entorno, nunca en esta tabla.
+model PaymentMethod {
+  id           String          @id @default(cuid())
+  provider     PaymentProvider @unique
+  name         String // "Transferencia o depósito"
+  description  String? // una línea en el checkout: qué pasa después
+  instructions String?         @db.Text // se muestra en la confirmación del pedido
+  isEnabled    Boolean         @default(false)
+  position     Int             @default(0)
+
+  orders Order[]
+
+  updatedAt DateTime @updatedAt
+}
+
+enum OrderStatus {
+  PENDING_PAYMENT
+  PAID
+  PREPARING
+  SHIPPED
+  DELIVERED
+  CANCELLED
+}
+
+// Los datos del cliente, la dirección y los precios se copian al pedido: si después
+// cambia el catálogo o el perfil, el pedido conserva lo que se compró.
+model Order {
+  id     String      @id @default(cuid()) // va en la URL de confirmación (no adivinable)
+  number Int         @unique @default(autoincrement()) // número visible: MT-000123
+  status OrderStatus @default(PENDING_PAYMENT)
+  userId String? // null = compra como invitado
+
+  email     String
+  phone     String
+  firstName String
+  lastName  String
+
+  shippingStreet       String
+  shippingNeighborhood String
+  shippingPostalCode   String
+  shippingCity         String
+  shippingState        String
+  shippingReferences   String?
+
+  subtotal     Decimal @db.Decimal(10, 2)
+  shippingCost Decimal @db.Decimal(10, 2)
+  total        Decimal @db.Decimal(10, 2)
+  currency     String  @default("MXN")
+
+  paymentMethodId  String
+  paymentReference String? // id del cobro en la pasarela
+  notes            String? @db.Text
+
+  shippingCarrier String? // paquetería, al marcar como enviado
+  trackingNumber  String? // número de guía
+
+  user          User?               @relation(fields: [userId], references: [id], onDelete: SetNull)
+  paymentMethod PaymentMethod       @relation(fields: [paymentMethodId], references: [id])
+  items         OrderItem[]
+  statusHistory OrderStatusChange[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([status, createdAt])
+  @@index([email])
+}
+
+model OrderItem {
+  id           String  @id @default(cuid())
+  orderId      String
+  variantId    String? // null si la variante se elimina después
+  productName  String
+  productSlug  String
+  variantLabel String?
+  sku          String
+  imageUrl     String?
+  unitPrice    Decimal @db.Decimal(10, 2)
+  quantity     Int
+  lineTotal    Decimal @db.Decimal(10, 2)
+
+  order   Order           @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  variant ProductVariant? @relation(fields: [variantId], references: [id], onDelete: SetNull)
+
+  @@index([orderId])
+}
+
+// Seguimiento: cada cambio de estado con quién lo hizo y una nota opcional.
+model OrderStatusChange {
+  id         String       @id @default(cuid())
+  orderId    String
+  fromStatus OrderStatus? // null = pedido creado
+  toStatus   OrderStatus
+  note       String?      @db.Text
+  userId     String? // null = el sistema (checkout)
+
+  order Order @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  user  User? @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  createdAt DateTime @default(now())
+
+  @@index([orderId, createdAt])
+}

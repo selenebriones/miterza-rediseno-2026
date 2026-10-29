@@ -1,26 +1,116 @@
 @import "tailwindcss";
+@import "tw-animate-css";
+@import "shadcn/tailwind.css";
+
+@custom-variant dark (&:is(.dark *));
+@config "../../tailwind.config.ts";
+
+/*
+ * Tokens de shadcn mapeados a la paleta de Mi Terza.
+ * `accent` NO se mapea aquí: en este proyecto es el verde lima de promociones
+ * (tailwind.config.ts). Los componentes de shadcn usan `secondary` para los hovers.
+ */
+@theme inline {
+  --font-heading: var(--font-roobert);
+  --color-ring: var(--ring);
+  --color-input: var(--input);
+  --color-border: var(--border);
+  --color-destructive: var(--destructive);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-muted: var(--muted);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-secondary: var(--secondary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-primary: var(--primary);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-popover: var(--popover);
+  --color-card-foreground: var(--card-foreground);
+  --color-card: var(--card);
+  --color-foreground: var(--foreground);
+  --color-background: var(--background);
+  --color-sidebar-ring: var(--sidebar-ring);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar: var(--sidebar);
+  --radius-sm: calc(var(--radius) * 0.6);
+  --radius-md: calc(var(--radius) * 0.8);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) * 1.4);
+  --radius-2xl: calc(var(--radius) * 1.8);
+  --radius-3xl: calc(var(--radius) * 2.2);
+  --radius-4xl: calc(var(--radius) * 2.6);
+}
 
 :root {
   --background: #ffffff;
-  --foreground: #171717;
+  --foreground: #555555;
+  --card: #ffffff;
+  --card-foreground: #555555;
+  --popover: #ffffff;
+  --popover-foreground: #555555;
+  --primary: #00514a;
+  --primary-foreground: #ffffff;
+  --secondary: #f0fae5;
+  --secondary-foreground: #00514a;
+  --muted: #f4f6f2;
+  --muted-foreground: #767676;
+  --destructive: #b42318;
+  --border: #e2e8df;
+  --input: #c9d3c5;
+  --ring: #00514a;
+  --radius: 0.625rem;
+  --sidebar: #f0fae5;
+  --sidebar-foreground: #555555;
+  --sidebar-primary: #00514a;
+  --sidebar-primary-foreground: #ffffff;
+  --sidebar-accent: #e6eeed;
+  --sidebar-accent-foreground: #00514a;
+  --sidebar-border: #e2e8df;
+  --sidebar-ring: #00514a;
 }
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+@layer base {
+  html {
+    scroll-padding-top: theme(spacing.header);
   }
-}
 
-body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background font-sans text-base text-foreground antialiased;
+    /* Roobert convierte "(2)" en "②" con sus alternativas contextuales; se desactivan. */
+    font-feature-settings: "calt" 0;
+  }
+
+  h1,
+  h2,
+  h3,
+  h4 {
+    @apply text-heading;
+  }
+
+  /* Foco visible y consistente para navegación con teclado (WCAG 2.4.7). */
+  :focus-visible {
+    @apply outline-2 outline-offset-2 outline-brand;
+  }
+
+  button:not(:disabled),
+  [role="button"]:not(:disabled) {
+    cursor: pointer;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.01ms !important;
+      transition-duration: 0.01ms !important;
+    }
+  }
 }
