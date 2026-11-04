@@ -8,14 +8,14 @@ import { getHeroBanners, getHomeCategories, getHomeSections, type HomeSection } 
 import { getFeaturedProducts } from "@/lib/products";
 
 export const metadata: Metadata = {
-  title: "Mi Terza | Persianas y tapetes en línea",
+  title: "Mi Terza | Pisos, muros y persianas en línea",
   description:
-    "Compra persianas y tapetes Terza en línea: más de 40 años de respaldo, gran variedad de telas y las mejores garantías.",
+    "Compra pisos, alfombras, muros, persianas y productos para exterior Terza en línea, con más de 40 años de respaldo y las mejores garantías.",
 };
 
 export default async function HomePage() {
   const sections = await getHomeSections();
-  const featuredLimit = sections.find((s) => s.type === "FEATURED_PRODUCTS")?.limit ?? 8;
+  const featuredLimit = sections.find((s) => s.type === "FEATURED_PRODUCTS")?.limit ?? 12;
   const [banners, categories, featured] = await Promise.all([
     getHeroBanners(),
     getHomeCategories(),
@@ -31,18 +31,19 @@ export default async function HomePage() {
         return <ValueProposition title={section.title} items={section.items} />;
       case "CATEGORY_CAROUSEL":
         return (
-          categories.length > 0 && (
-            <CategoryCarousel title={section.title ?? "Compra por categoría"} categories={categories} />
-          )
+          categories.length > 0 && <CategoryCarousel title={section.title ?? "Categoría"} categories={categories} />
         );
       case "FEATURED_PRODUCTS":
-        return <FeaturedProducts title={section.title ?? "Destacados"} subtitle={section.subtitle} products={featured} />;
+        return (
+          <FeaturedProducts title={section.title ?? "Destacados"} subtitle={section.subtitle} products={featured} />
+        );
       case "INSTALL_GUIDE":
         return (
           section.tutorials.length > 0 && (
             <InstallGuide
               title={section.title ?? "Guía de instalación"}
               subtitle={section.subtitle}
+              eyebrow={section.eyebrow}
               tutorials={section.tutorials}
             />
           )
@@ -54,7 +55,7 @@ export default async function HomePage() {
 
   return (
     <>
-      <h1 className="sr-only">Mi Terza: persianas y tapetes Terza en línea</h1>
+      <h1 className="sr-only">Mi Terza: pisos, muros y persianas Terza en línea</h1>
       {sections.map((section) => (
         <div key={section.type}>{renderSection(section)}</div>
       ))}

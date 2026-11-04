@@ -171,3 +171,55 @@ MÓVIL                                    DESKTOP
 - Productos destacados de ejemplo: nombres de líneas reales, pero precios, existencias y fotos asignadas son de prueba.
 - Se agregó `INSTALL_GUIDE` al enum `HomeSectionType` del schema.
 - La rotación de banners usa un temporizador propio (no el plugin de Embla) para pausar de forma fiable con cursor, foco, arrastre y el botón.
+
+### Actualización: categorías circulares (2026-10-29)
+
+Las categorías del home se muestran como en la referencia del cliente: foto circular, nombre centrado debajo y el número de productos ("16 productos"). El título de la sección va centrado, sin enlace "Ver todo". El conteo sale de la base (solo productos activos; la categoría padre incluye los de sus líneas). En desktop caben 6 en una fila y se centran si hay menos; en móvil se deslizan y la tercera se ve cortada.
+
+### Actualización: estilo de la referencia Gecko "Home Accessories" (2026-10-29)
+
+- **Header:** botones de ícono de línea (cuenta, favoritos, carrito) sin texto, con contador redondo; el buscador queda exactamente al centro (cuadrícula 1fr / 40rem / 1fr).
+- **Hero:** foto a todo el ancho con velo oscuro, título y subtítulo centrados en blanco y botón rectangular (radio 5 px). Efectos: la foto se acerca despacio (9 s) y el texto entra subiendo, escalonado. Puntos blancos abajo y botón de pausa (WCAG 2.2.2).
+- **Tarjetas de producto:** al pasar el cursor la foto se acerca (×1.09) y cambia a la segunda imagen, y aparecen tres botones redondos arriba a la derecha: vista rápida, carrito y favoritos. En pantallas táctiles los botones están siempre visibles. Nombre y precio centrados; precio de oferta en rojo con el anterior tachado.
+- **Carrito desde la tarjeta:** productos con una sola variante (tapetes) se agregan directo; los que piden color o medida abren la vista rápida.
+- **Favoritos:** se guardan en el navegador (localStorage); página `/favoritos` y contador en el header.
+
+### Actualización: tarjetas del home (2026-10-29)
+
+El listado del home usa la variante `card` de `ProductCard`: tarjeta blanca con sombra sutil, foto pegada arriba y el texto a la izquierda dentro de la tarjeta. El catálogo y los favoritos conservan la variante `plain`. Los títulos del home quedaron como "Categoría" y "Nuevos productos" (se editan en `HomeSection.title`).
+
+### Actualización: tarjetas "Nuevos productos" estilo terza-sitio (2026-11-03)
+
+Variante `swatch` de `ProductCard` (solo en el home): tarjeta blanca con esquinas de 24 px y sombra suave, foto cuadrada, etiquetas en píldora lima en mayúsculas ("NUEVO", "-15%"), un cuadrito de 64 px con borde blanco montado sobre el borde inferior de la foto (muestra la textura) y nombre en negrita con la línea y el precio debajo, alineados a la izquierda. Conserva la segunda imagen y el zoom al pasar el cursor y los botones de vista rápida, carrito y favoritos. El catálogo y los favoritos siguen con la variante `plain`.
+
+Pendiente: el cuadrito usa un acercamiento de la foto del producto; cuando el cliente tenga imágenes reales de textura o muestra por producto, se agrega ese campo y se usa en su lugar.
+
+## Catálogo real de terza-sitio (2026-11-04)
+
+Los productos de ejemplo se reemplazaron por el catálogo de terza-sitio (`prisma/data/terza-catalogo.json`, copia de `terza-sitio/src/data/catalogo.json` con las portadas elegidas a mano): 847 productos en 13 categorías, con su ficha técnica, SKU, etiqueta "Nuevo" y hasta 4 fotos cada uno (`public/catalogo/`, 1,289 fotos, 68 MB).
+
+- **Árbol y menú** como en terza-sitio: Pisos (vinílicos, laminados, híbridos, madera y alfombras), Muros (lambrín y paneles, Flexiroc, follaje artificial), Persianas (enrollables y de madera), Exterior (deck y pasto sintético) y Accesorios. El home muestra las 5 secciones.
+- **Nombre:** colección + variante ("Bilbao Castle"). La colección se agrega a la ficha técnica.
+- **Precio DUMMY de $1,000 en todos los productos** (`DUMMY_PRICE` en `prisma/seed-data.ts`): el catálogo no trae precios y un precio igual en todo deja claro que el cliente debe cargar el precio final. Las ofertas de ejemplo (~1 de cada 12) muestran $1,000 tachado y el precio con 10, 15 o 20 % de descuento sobre esa base ($900, $850, $800). Existencias también de prueba.
+- Para volver a importar: `npx prisma db seed` (no toca usuarios ni pedidos; los pedidos anteriores conservan su detalle aunque el producto ya no exista).
+
+### "Nuevos productos" como slider (2026-11-04)
+
+Slider de 12 productos (`HomeSection.settings.limit`): 4 tarjetas en desktop, 3 en tablet y 1.6 en móvil (la tarjeta cortada invita a deslizar); flechas junto a "Ver todo" solo en desktop. Toma los productos más recientes de cada categoría (primero los marcados "Nuevo" en terza-sitio) y los intercala, uno por categoría en cada vuelta, para que aparezcan todas. terza-sitio solo marca como nuevos productos de 4 categorías; en las demás se usan los últimos dados de alta (id más alto), sin la etiqueta "Nuevo".
+
+### Pisos: precio por m² y por caja (2026-11-04)
+
+Pisos vinílicos, laminados, híbridos y de madera se venden por caja (`FLOOR_CATEGORIES`). Product guarda `format` (medida de la pieza, de la ficha de terza-sitio) y `areaPerBox` (m² por caja). El precio de la variante es el de la caja; la ficha, las tarjetas, la vista rápida y el mega menú muestran el precio por m² (`/m²`) y la ficha agrega "X m² x caja: $costo". En el carrito la línea dice "Caja de X m²". SKU visible en la ficha de todos los productos.
+
+- m² por caja reales solo en pisos híbridos (2.4); los demás usan `DUMMY_AREA_PER_BOX` = 2 hasta tener el dato del cliente.
+- Pendiente: el filtro de precio del catálogo compara contra el precio de la caja, no el del m².
+
+### Calculadora de cajas (pisos, 2026-11-04)
+
+Botón circular con ícono de calculadora arriba a la derecha del precio, solo en productos con m² por caja. Abre una ventana (`box-calculator.tsx`):
+
+- Una o varias áreas; cada una se captura en **metros cuadrados** o **ancho × largo** (en m, acepta coma o punto). Se pueden agregar y quitar áreas.
+- "Sumar 10 % por cortes y desperdicio" activado por defecto (recomendado; se puede desmarcar).
+- Resultado fijo al pie: cajas sugeridas = ⌈superficie (+10 %) ÷ m² por caja⌉, costo total, superficie y m² que cubren las cajas. Si las cajas superan las existencias, avisa y ofrece solo las disponibles.
+- "Agregar N cajas al carrito" ajusta la cantidad y agrega al carrito.
+- Tope por producto en el carrito subido de 10 a 99 (`MAX_PER_LINE`): con 10 cajas solo se cubrían ~20 m².

@@ -7,9 +7,21 @@ type Props = {
   subtitle?: string | null;
   action?: { label: string; href: string };
   children?: React.ReactNode; // controles extra a la derecha (p. ej. flechas del carrusel)
+  align?: "left" | "center";
 };
 
-export function SectionHeader({ id, title, subtitle, action, children }: Props) {
+export function SectionHeader({ id, title, subtitle, action, children, align = "left" }: Props) {
+  if (align === "center") {
+    return (
+      <div className="mb-8 text-center lg:mb-10">
+        <h2 id={id} className="text-2xl leading-tight font-bold lg:text-[2rem]">
+          {title}
+        </h2>
+        {subtitle && <p className="mx-auto mt-1.5 max-w-2xl">{subtitle}</p>}
+      </div>
+    );
+  }
+
   return (
     <div className="mb-6 flex items-end justify-between gap-4 lg:mb-8">
       <div>
@@ -25,7 +37,10 @@ export function SectionHeader({ id, title, subtitle, action, children }: Props) 
             className="group/action inline-flex min-h-tap items-center gap-1.5 font-semibold text-brand hover:underline hover:underline-offset-4"
           >
             {action.label}
-            <ArrowRightIcon className="size-4 transition-transform group-hover/action:translate-x-0.5" aria-hidden="true" />
+            <ArrowRightIcon
+              className="size-4 transition-transform group-hover/action:translate-x-0.5"
+              aria-hidden="true"
+            />
           </Link>
         )}
         {children}

@@ -15,7 +15,7 @@ export function ValueProposition({ title, items }: { title: string | null; items
   if (items.length === 0) return null;
 
   return (
-    <section aria-labelledby="propuesta-valor" className="mt-8 bg-surface lg:mt-10">
+    <section aria-labelledby="propuesta-valor" className="bg-surface">
       <h2 id="propuesta-valor" className="sr-only">
         {title ?? "Por qué comprar en Mi Terza"}
       </h2>

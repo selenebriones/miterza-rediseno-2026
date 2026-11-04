@@ -36,7 +36,9 @@ export function CatalogProvider({
   }
 
   return (
-    <CatalogContext.Provider value={{ filters: optimistic, navigate, isPending, tree }}>{children}</CatalogContext.Provider>
+    <CatalogContext.Provider value={{ filters: optimistic, navigate, isPending, tree }}>
+      {children}
+    </CatalogContext.Provider>
   );
 }
 

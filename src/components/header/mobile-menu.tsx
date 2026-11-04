@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useRef } from "react";
-import { ChevronRightIcon, MailIcon, MenuIcon, PhoneIcon, SearchIcon, UserIcon } from "lucide-react";
+import { ChevronRightIcon, HeartIcon, MailIcon, MenuIcon, PhoneIcon, SearchIcon, UserIcon } from "lucide-react";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { Sheet, SheetClose, SheetContent, SheetDescription, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import type { NavItem } from "@/lib/navigation";
@@ -27,7 +27,7 @@ export function MobileMenu({ main, secondary, onSearch }: Props) {
     <Sheet>
       <SheetTrigger
         aria-label="Abrir menú"
-        className="grid size-tap place-items-center rounded-full text-white transition-colors hover:bg-brand-hover active:bg-brand-active"
+        className="grid size-tap place-items-center rounded-full text-brand transition-colors hover:bg-surface active:bg-brand-50"
       >
         <MenuIcon className="size-6" aria-hidden="true" />
       </SheetTrigger>
@@ -123,6 +123,12 @@ export function MobileMenu({ main, secondary, onSearch }: Props) {
               <Link href="/cuenta" className={cn(rowClass, "justify-start font-normal")}>
                 <UserIcon className="size-5 text-brand" aria-hidden="true" />
                 Mi cuenta
+              </Link>
+            </SheetClose>
+            <SheetClose asChild>
+              <Link href="/favoritos" className={cn(rowClass, "justify-start font-normal")}>
+                <HeartIcon className="size-5 text-brand" aria-hidden="true" />
+                Favoritos
               </Link>
             </SheetClose>
           </nav>

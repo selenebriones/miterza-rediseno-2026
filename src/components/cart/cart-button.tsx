@@ -1,11 +1,14 @@
 "use client";
 
 import { ShoppingBagIcon } from "lucide-react";
+import { cn } from "@/lib/utils";
 import { useCart } from "./cart-provider";
 
+// Círculo lima con el ícono de la bolsa y el contador, a juego con los demás botones del header.
 export function CartButton() {
-  const { count, setOpen, bumpKey } = useCart();
-  const label = count === 0 ? "Carrito vacío" : `Carrito, ${count} ${count === 1 ? "producto" : "productos"}`;
+  const { count, setOpen, bumpKey, hydrated } = useCart();
+  const shown = hydrated ? count : 0;
+  const label = shown === 0 ? "Carrito vacío" : `Carrito, ${shown} ${shown === 1 ? "producto" : "productos"}`;
 
   return (
     <button
@@ -13,17 +16,19 @@ export function CartButton() {
       onClick={() => setOpen(true)}
       aria-label={label}
       aria-haspopup="dialog"
-      className="relative inline-flex h-tap min-w-tap items-center justify-center gap-2 rounded-pill text-white transition-colors hover:bg-brand-hover active:bg-brand-active lg:px-3"
+      className={cn(
+        "relative inline-flex size-11 items-center justify-center rounded-full bg-accent text-brand transition-colors hover:bg-accent-hover",
+        "lg:size-12",
+      )}
     >
-      <ShoppingBagIcon className="size-6" aria-hidden="true" />
-      <span className="hidden font-medium lg:inline">Carrito</span>
-      {count > 0 && (
+      <ShoppingBagIcon className="size-5 lg:size-[1.375rem]" strokeWidth={1.75} aria-hidden="true" />
+      {shown > 0 && (
         <span
           key={bumpKey}
           aria-hidden="true"
-          className="absolute top-0.5 right-0 grid h-5 min-w-5 animate-cart-bump place-items-center rounded-pill bg-accent px-1 text-xs font-bold text-brand lg:static"
+          className="absolute -top-1 -right-1 grid h-5 min-w-5 animate-cart-bump place-items-center rounded-full bg-brand px-1 text-[0.6875rem] leading-none font-bold text-white "
         >
-          {count > 99 ? "99+" : count}
+          {shown > 99 ? "99+" : shown}
         </span>
       )}
     </button>

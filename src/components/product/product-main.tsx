@@ -2,16 +2,29 @@
 
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
-import { CheckIcon, MinusIcon, PhoneIcon, PlusIcon, RotateCcwIcon, ShieldCheckIcon, TruckIcon } from "lucide-react";
+import {
+  CheckIcon,
+  ExternalLinkIcon,
+  MinusIcon,
+  PhoneIcon,
+  PlusIcon,
+  RotateCcwIcon,
+  ShieldCheckIcon,
+  TruckIcon,
+} from "lucide-react";
 import { useCart } from "@/components/cart/cart-provider";
+import { MAX_PER_LINE } from "@/lib/cart-types";
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { useScrolledPast } from "@/hooks/use-scrolled-past";
 import type { ProductDetail, ProductVariant } from "@/lib/products";
 import { formatPrice, storeConfig } from "@/lib/store-config";
+import { boxLabel, formatArea, pricePerArea } from "@/lib/unit-price";
 import { cn } from "@/lib/utils";
+import { BoxCalculator } from "./box-calculator";
 import { ProductGallery } from "./product-gallery";
 import { VariantSelector } from "./variant-selector";
 
-const MAX_PER_ORDER = 10;
+const MAX_PER_ORDER = MAX_PER_LINE;
 
 export function ProductMain({ product }: { product: ProductDetail }) {
   const [variant, setVariant] = useState<ProductVariant>(
@@ -19,6 +32,8 @@ export function ProductMain({ product }: { product: ProductDetail }) {
   );
   const [quantity, setQuantity] = useState(1);
   const [added, setAdded] = useState(false);
+  // Cajas agregadas con la calculadora en esta visita (se suman si se usa varias veces).
+  const [calculatorBoxes, setCalculatorBoxes] = useState(0);
   const ctaRef = useRef<HTMLDivElement>(null);
   // Barra fija en móvil cuando el botón principal ya salió de la pantalla por arriba.
   const showStickyBar = useScrolledPast(ctaRef);
@@ -33,10 +48,17 @@ export function ProductMain({ product }: { product: ProductDetail }) {
       ? Math.round((1 - variant.price / variant.compareAtPrice) * 100)
       : null;
   const variantLabel = Object.values(variant.options).join(" · ");
+  // Pisos: el precio de la variante es por caja; se muestra por m² y debajo el costo de la caja.
+  const area = product.areaPerBox;
+  const shownPrice = pricePerArea(variant.price, area);
+  const shownCompareAt = variant.compareAtPrice ? pricePerArea(variant.compareAtPrice, area) : null;
+  const unit = area ? <span className="text-[0.6em] font-semibold">/m²</span> : null;
 
   // Si el color elegido tiene foto propia, la galería salta a ella.
   const focusIndex = (() => {
-    const index = product.images.findIndex((img) => img.variantOption && Object.values(variant.options).includes(img.variantOption));
+    const index = product.images.findIndex(
+      (img) => img.variantOption && Object.values(variant.options).includes(img.variantOption),
+    );
     return index === -1 ? undefined : index;
   })();
 
@@ -47,18 +69,18 @@ export function ProductMain({ product }: { product: ProductDetail }) {
     setQuantity((q) => Math.max(1, Math.min(q, Math.min(next.stock, MAX_PER_ORDER))));
   }
 
-  function addToCart() {
+  function addToCart(count = quantity) {
     if (!inStock) return;
     addItem(
       {
         variantId: variant.id,
         slug: product.slug,
         name: product.name,
-        variantLabel: variantLabel || undefined,
+        variantLabel: (area ? boxLabel(area) : variantLabel) || undefined,
         price: variant.price,
         imageUrl: product.images[0]?.url ?? null,
       },
-      quantity,
+      count,
     );
     setAdded(true);
     clearTimeout(addedTimer.current);
@@ -76,28 +98,57 @@ export function ProductMain({ product }: { product: ProductDetail }) {
       <div className="mt-6 lg:col-span-5 lg:mt-0">
         <div className="lg:sticky lg:top-32">
           <Link
-            href={`/productos?categoria=${product.line.toLowerCase()}`}
+            href={`/productos?categoria=${product.lineSlug}`}
             className="text-xs font-semibold tracking-wide text-muted-foreground uppercase hover:text-brand"
           >
             {product.category} · {product.line}
           </Link>
           <h1 className="mt-1.5 text-2xl leading-tight font-bold text-balance lg:text-[2rem]">{product.name}</h1>
+          {product.format && <p className="mt-2 text-[0.9375rem]">Formato: {product.format}</p>}
+          <p className="mt-1 border-b border-line pb-4 text-sm text-muted-foreground">
+            SKU <span className="ml-1.5 tracking-wide">{variant.sku}</span>
+          </p>
 
-          <div aria-live="polite" className="mt-4 flex flex-wrap items-center gap-x-3 gap-y-1">
-            <span className="text-[1.75rem] font-bold text-heading transition-all">{formatPrice(variant.price)}</span>
-            {discount && variant.compareAtPrice && (
-              <>
-                <s className="text-lg text-muted-foreground">
-                  <span className="sr-only">Precio anterior: </span>
-                  {formatPrice(variant.compareAtPrice)}
-                </s>
-                <span className="rounded-pill bg-accent px-2.5 py-1 text-xs font-bold text-brand">-{discount}%</span>
-              </>
+          {/* Precio a la izquierda; en pisos, la calculadora de cajas arriba a la derecha. */}
+          <div className="mt-4 flex items-start justify-between gap-4">
+            <div className="min-w-0">
+              <div aria-live="polite" className="flex flex-wrap items-center gap-x-3 gap-y-1">
+                <span className="text-[1.75rem] font-bold text-heading transition-all">
+                  {formatPrice(shownPrice)}
+                  {unit}
+                  {area && <span className="sr-only"> por metro cuadrado</span>}
+                </span>
+                {discount && shownCompareAt && (
+                  <>
+                    <s className="text-lg text-muted-foreground">
+                      <span className="sr-only">Precio anterior: </span>
+                      {formatPrice(shownCompareAt)}
+                    </s>
+                    <span className="rounded-pill bg-sale px-2.5 py-1 text-xs font-bold text-white">
+                      -{discount}%
+                    </span>
+                  </>
+                )}
+              </div>
+              {area && (
+                <p className="mt-1.5 text-[0.9375rem] font-semibold text-heading">
+                  {formatArea(area)} m² x caja: <span className="ml-1">{formatPrice(variant.price)}</span>
+                </p>
+              )}
+            </div>
+            {area && (
+              <BoxCalculator
+                areaPerBox={area}
+                boxPrice={variant.price}
+                maxBoxes={maxQuantity}
+                onApply={(boxes) => {
+                  addToCart(boxes);
+                  setCalculatorBoxes((n) => n + boxes);
+                }}
+              />
             )}
           </div>
-          {product.options.length > 0 && (
-            <p className="mt-1 text-sm">Precio para: {variantLabel}</p>
-          )}
+          {product.options.length > 0 && <p className="mt-1 text-sm">Precio para: {variantLabel}</p>}
 
           {product.options.length > 0 && (
             <div className="mt-6 border-t border-line pt-6">
@@ -113,12 +164,19 @@ export function ProductMain({ product }: { product: ProductDetail }) {
           <p aria-live="polite" className="mt-6 flex items-center gap-2 text-[0.9375rem] font-medium">
             <span
               aria-hidden="true"
-              className={cn("size-2.5 rounded-full", !inStock ? "bg-muted-foreground" : lowStock ? "bg-warning" : "bg-success")}
+              className={cn(
+                "size-2.5 rounded-full",
+                !inStock ? "bg-muted-foreground" : lowStock ? "bg-danger" : "bg-success",
+              )}
             />
             {!inStock ? (
-              <span className="text-body">Agotado en esta combinación. Prueba con otra medida o color.</span>
+              <span className="text-body">
+                {product.options.length > 0
+                  ? "Agotado en esta combinación. Prueba con otra medida o color."
+                  : "Agotado"}
+              </span>
             ) : lowStock ? (
-              <span className="text-warning">¡Últimas {variant.stock} piezas!</span>
+              <span className="text-danger">¡Últimas {variant.stock} piezas!</span>
             ) : (
               <span className="text-success">Disponible</span>
             )}
@@ -126,8 +184,87 @@ export function ProductMain({ product }: { product: ProductDetail }) {
 
           <div ref={ctaRef} className="mt-4 flex gap-3">
             <QuantityStepper value={quantity} max={maxQuantity} onChange={setQuantity} disabled={!inStock} />
-            <AddButton inStock={inStock} added={added} onClick={addToCart} className="flex-1" />
+            <AddButton inStock={inStock} added={added} onClick={() => addToCart()} className="flex-1" />
           </div>
+
+          {area && calculatorBoxes > 0 && (
+            <p
+              role="status"
+              className="mt-3 flex items-start gap-2 rounded-card bg-surface px-4 py-3 text-sm text-heading"
+            >
+              <CheckIcon className="mt-0.5 size-4 shrink-0 text-success" aria-hidden="true" />
+              <span>
+                Agregaste{" "}
+                <strong>
+                  {calculatorBoxes} {calculatorBoxes === 1 ? "caja" : "cajas"} ({formatArea(calculatorBoxes * area)} m²)
+                </strong>{" "}
+                al carrito con la calculadora.{" "}
+                <button
+                  type="button"
+                  onClick={() => setOpen(true)}
+                  className="font-semibold whitespace-nowrap text-brand underline underline-offset-2"
+                >
+                  Ver carrito
+                </button>
+              </span>
+            </p>
+          )}
+
+          {product.description.length > 0 && (
+            <div className="mt-6 space-y-3 border-t border-line pt-6">
+              <h2 className="text-lg font-semibold text-heading">Descripción</h2>
+              {product.description.map((paragraph) => (
+                <p key={paragraph}>{paragraph}</p>
+              ))}
+            </div>
+          )}
+
+          {/* Ficha técnica: cerrada por defecto para no alejar los beneficios y el botón de compra. */}
+          {(product.features.length > 0 || product.installVideoUrl) && (
+            <Accordion type="multiple" className="mt-6 border-y border-line">
+              {product.features.length > 0 && (
+                <AccordionItem value="caracteristicas" className="border-none">
+                  <AccordionTrigger className="min-h-14 items-center py-0 text-lg font-semibold text-heading hover:no-underline">
+                    Características
+                  </AccordionTrigger>
+                  <AccordionContent className="pb-5 text-base">
+                    <dl className="divide-y divide-line overflow-hidden rounded-card border border-line">
+                      {product.features.map((feature) => (
+                        <div
+                          key={feature.label}
+                          className="grid gap-1 bg-white px-4 py-3 even:bg-[#f3f4ef] sm:grid-cols-3 sm:gap-4"
+                        >
+                          <dt className="font-medium text-heading">{feature.label}</dt>
+                          <dd className="sm:col-span-2">{feature.value}</dd>
+                        </div>
+                      ))}
+                    </dl>
+                  </AccordionContent>
+                </AccordionItem>
+              )}
+              {/* Persianas: tutorial de medidas e instalación, también cerrado al inicio. */}
+              {product.installVideoUrl && (
+                <AccordionItem value="instalacion" className="border-t border-line">
+                  <AccordionTrigger className="min-h-14 items-center py-0 text-lg font-semibold text-heading hover:no-underline">
+                    Medidas e instalación
+                  </AccordionTrigger>
+                  <AccordionContent className="space-y-3 pb-5 text-base">
+                    <p>Mira paso a paso cómo medir tu ventana e instalar tu persiana {product.line.toLowerCase()}.</p>
+                    <a
+                      href={product.installVideoUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex min-h-tap items-center gap-2 font-semibold text-brand no-underline hover:underline"
+                    >
+                      Ver tutorial en YouTube
+                      <ExternalLinkIcon className="size-4" aria-hidden="true" />
+                      <span className="sr-only">(se abre en otra pestaña)</span>
+                    </a>
+                  </AccordionContent>
+                </AccordionItem>
+              )}
+            </Accordion>
+          )}
 
           <ul className="mt-6 space-y-3 rounded-card bg-surface p-4 text-sm">
             <li className="flex gap-3">
@@ -156,7 +293,10 @@ export function ProductMain({ product }: { product: ProductDetail }) {
               <PhoneIcon className="size-5 shrink-0 text-brand" aria-hidden="true" />
               <span>
                 ¿Dudas con la medida?{" "}
-                <a href={storeConfig.supportPhoneHref} className="font-medium whitespace-nowrap text-brand underline underline-offset-2">
+                <a
+                  href={storeConfig.supportPhoneHref}
+                  className="font-medium whitespace-nowrap text-brand underline underline-offset-2"
+                >
                   {storeConfig.supportPhone}
                 </a>
               </span>
@@ -175,13 +315,18 @@ export function ProductMain({ product }: { product: ProductDetail }) {
       >
         <div className="flex items-center gap-3">
           <div className="min-w-0 flex-1">
-            <p className="text-lg leading-tight font-bold text-heading">{formatPrice(variant.price)}</p>
-            <p className="truncate text-xs">{variantLabel || product.line}</p>
+            <p className="text-lg leading-tight font-bold text-heading">
+              {formatPrice(variant.price)}
+              {area && <span className="text-xs font-semibold"> /caja</span>}
+            </p>
+            <p className="truncate text-xs">
+              {area ? `${formatArea(area)} m² por caja` : variantLabel || product.line}
+            </p>
           </div>
           <AddButton
             inStock={inStock}
             added={added}
-            onClick={addToCart}
+            onClick={() => addToCart()}
             compact
             tabIndex={showStickyBar ? 0 : -1}
           />

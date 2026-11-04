@@ -226,7 +226,7 @@ function EmptyCart({ categories }: { categories: { slug: string; name: string }[
         <ShoppingBagIcon className="size-9 text-brand" aria-hidden="true" />
       </span>
       <h2 className="mt-4 text-xl font-bold">Tu carrito está vacío</h2>
-      <p className="mt-2 max-w-sm">Explora nuestras persianas y tapetes y encuentra el ideal para tu espacio.</p>
+      <p className="mt-2 max-w-sm">Explora nuestros pisos, muros y persianas y encuentra el ideal para tu espacio.</p>
       <Link
         href="/productos"
         className="mt-6 inline-flex h-12 items-center rounded-pill bg-brand px-6 font-semibold text-white transition-colors hover:bg-accent hover:text-brand"

@@ -7,7 +7,7 @@ import { storeConfig } from "@/lib/store-config";
 import { SocialIcon } from "./social-icons";
 
 const linkClass =
-  "inline-flex min-h-tap items-center text-white/80 transition-colors hover:text-white hover:underline hover:underline-offset-4 lg:min-h-9";
+  "inline-flex min-h-tap items-center text-body transition-colors hover:text-brand hover:underline hover:underline-offset-4 lg:min-h-9";
 
 // Con Cache Components, `new Date()` debe ir en una función cacheada para poder prerenderizar.
 async function getCurrentYear() {
@@ -19,28 +19,28 @@ export async function SiteFooter() {
   const [groups, year] = await Promise.all([getFooterNavigation(), getCurrentYear()]);
 
   return (
-    <footer className="mt-auto bg-brand text-white/80">
+    <footer className="mt-auto border-t border-line bg-cream text-body">
       <div className="container grid gap-10 py-12 lg:grid-cols-12 lg:gap-8 lg:py-16">
         {/* Marca y contacto: siempre visibles, es lo que más se busca en el footer. */}
         <div className="space-y-6 lg:col-span-4">
-          <Logo className="h-10 lg:h-12" />
+          <Logo tone="color" className="h-10 lg:h-12" />
           <p className="max-w-sm text-sm">
             En Terza somos la empresa más importante en México y Latinoamérica en la producción y comercialización de
             superficies, con más de 40 años de respaldo en el mercado.
           </p>
 
           <div>
-            <h2 className="text-base font-semibold text-white">¿Necesitas ayuda?</h2>
+            <h2 className="text-base font-semibold text-heading">¿Necesitas ayuda?</h2>
             <ul className="mt-1">
               <li>
                 <a href={storeConfig.supportPhoneHref} className={`${linkClass} gap-2`}>
-                  <PhoneIcon className="size-4 text-accent" aria-hidden="true" />
+                  <PhoneIcon className="size-4 text-brand" aria-hidden="true" />
                   {storeConfig.supportPhone}
                 </a>
               </li>
               <li>
                 <a href={`mailto:${storeConfig.supportEmail}`} className={`${linkClass} gap-2`}>
-                  <MailIcon className="size-4 text-accent" aria-hidden="true" />
+                  <MailIcon className="size-4 text-brand" aria-hidden="true" />
                   {storeConfig.supportEmail}
                 </a>
               </li>
@@ -55,7 +55,7 @@ export async function SiteFooter() {
                   target="_blank"
                   rel="noopener noreferrer"
                   aria-label={`Terza en ${item.label} (se abre en otra pestaña)`}
-                  className="grid size-tap place-items-center rounded-full bg-white/10 text-white transition-colors hover:bg-accent hover:text-brand"
+                  className="grid size-tap place-items-center rounded-full bg-brand text-white transition-colors hover:bg-accent hover:text-brand"
                 >
                   <SocialIcon network={item.network} className="size-5" />
                 </a>
@@ -66,10 +66,10 @@ export async function SiteFooter() {
 
         <nav aria-label="Pie de página" className="lg:col-span-8">
           {/* Móvil: acordeón para no ocupar dos pantallas de scroll. */}
-          <Accordion type="multiple" className="border-t border-white/15 lg:hidden">
+          <Accordion type="multiple" className="border-t border-line lg:hidden">
             {groups.map((group) => (
-              <AccordionItem key={group.id} value={group.id} className="border-white/15 not-last:border-b">
-                <AccordionTrigger className="min-h-14 items-center rounded-none py-0 text-base font-semibold text-white hover:no-underline **:data-[slot=accordion-trigger-icon]:size-5 **:data-[slot=accordion-trigger-icon]:text-white/70">
+              <AccordionItem key={group.id} value={group.id} className="border-line not-last:border-b">
+                <AccordionTrigger className="min-h-14 items-center rounded-none py-0 text-base font-semibold text-heading hover:no-underline **:data-[slot=accordion-trigger-icon]:size-5 **:data-[slot=accordion-trigger-icon]:text-brand">
                   {group.title}
                 </AccordionTrigger>
                 <AccordionContent className="pb-3 [&_a]:no-underline">
@@ -91,7 +91,7 @@ export async function SiteFooter() {
           <div className="hidden grid-cols-3 gap-8 lg:grid">
             {groups.map((group) => (
               <div key={group.id}>
-                <h2 className="text-sm font-semibold tracking-wide text-white uppercase">{group.title}</h2>
+                <h2 className="text-sm font-semibold tracking-wide text-heading uppercase">{group.title}</h2>
                 <ul className="mt-4">
                   {group.items.map((item) => (
                     <li key={item.id}>
@@ -107,7 +107,7 @@ export async function SiteFooter() {
         </nav>
       </div>
 
-      <div className="border-t border-white/15">
+      <div className="border-t border-line">
         <p className="container py-6 text-sm">© {year} Terza. Todos los derechos reservados.</p>
       </div>
     </footer>

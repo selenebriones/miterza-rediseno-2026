@@ -147,3 +147,12 @@ Opciones: Recomendados (destacados primero) · Más relevantes (solo con búsque
 - Móvil: los conteos junto a cada opción del modal reflejan los filtros **aplicados**, no el borrador; el botón "Ver N productos" sí refleja el borrador.
 - El catálogo de ejemplo tiene 30 productos (16 persianas, 14 tapetes) para probar la paginación; la mayoría sin foto.
 - Pendiente: filtros por color, medida y material cuando existan las variantes.
+
+## Filtros por atributo (2026-11-04)
+
+Los mismos filtros de terza-sitio: Línea, Colección, Tipo, Estilo, Especie, Tono, Color, Uso y Presentación. Cada producto guarda sus valores en `Product.attributes` (JSON, desde `filtros` del catálogo de terza-sitio).
+
+- Aparecen al elegir una categoría, solo los que tienen valores en esas categorías (p. ej. Persianas → Línea, Colección, Tipo; Alfombras → Estilo, Tono, Uso). Sin categoría, un aviso invita a elegir una.
+- Casillas con conteo; dentro de un atributo los valores se suman (O) y entre atributos se combinan (Y). Un atributo con selección cuenta ignorando su propio filtro.
+- Más de 8 valores: "Ver todos (N)"; los elegidos siempre quedan visibles.
+- En la URL: `?categoria=persianas&linea=Optima&tipo=Black%20Out`. Chips "Línea: Optima" en filtros aplicados; "Limpiar" quita también los atributos. Cambiar de categoría limpia los atributos.

@@ -6,17 +6,22 @@ import { storeConfig } from "@/lib/store-config";
 type Props = {
   title: string;
   subtitle: string | null;
+  eyebrow: string | null;
   tutorials: InstallTutorial[];
 };
 
 // Quita la principal objeción al comprar persianas en línea: "¿y si mido mal?".
 // Los videos abren en YouTube; no se carga el reproductor en el home.
-export function InstallGuide({ title, subtitle, tutorials }: Props) {
+export function InstallGuide({ title, subtitle, eyebrow, tutorials }: Props) {
   return (
     <section aria-labelledby="guia-instalacion" className="bg-surface">
       <div className="container grid gap-8 py-12 lg:grid-cols-12 lg:items-center lg:gap-12 lg:py-20">
         <div className="lg:col-span-4">
-          <h2 id="guia-instalacion" className="text-2xl leading-tight font-bold lg:text-[2rem]">
+          {eyebrow && <p className="mb-3 text-sm font-semibold tracking-[0.2em] text-brand uppercase">{eyebrow}</p>}
+          <h2
+            id="guia-instalacion"
+            className="text-[1.75rem] leading-[1.1] font-bold text-heading sm:text-[2.25rem] lg:text-[2.5rem]"
+          >
             {title}
           </h2>
           {subtitle && <p className="mt-3">{subtitle}</p>}

@@ -54,7 +54,8 @@ export function ProductGallery({ images, productName, focusIndex }: Props) {
   const many = images.length > 1;
 
   return (
-    <div className="lg:grid lg:grid-cols-[5rem_1fr] lg:gap-4">
+    // Sin miniaturas (una sola foto) la imagen ocupa todo el ancho.
+    <div className={cn(many && "lg:grid lg:grid-cols-[5rem_1fr] lg:gap-4")}>
       <div className="group/gallery relative lg:order-2">
         <Carousel setApi={setApi} aria-label={`Imágenes de ${productName}`}>
           <CarouselContent className="-ml-0">
@@ -99,7 +100,10 @@ export function ProductGallery({ images, productName, focusIndex }: Props) {
               onClick={() => api?.scrollPrev()}
               disabled={selected === 0}
               aria-label="Imagen anterior"
-              className={cn(arrowClass, "left-3 hidden opacity-0 group-hover/gallery:opacity-100 focus-visible:opacity-100 lg:grid")}
+              className={cn(
+                arrowClass,
+                "left-3 hidden opacity-0 group-hover/gallery:opacity-100 focus-visible:opacity-100 lg:grid",
+              )}
             >
               <ChevronLeftIcon className="size-5" aria-hidden="true" />
             </button>
@@ -108,7 +112,10 @@ export function ProductGallery({ images, productName, focusIndex }: Props) {
               onClick={() => api?.scrollNext()}
               disabled={selected === images.length - 1}
               aria-label="Imagen siguiente"
-              className={cn(arrowClass, "right-3 hidden opacity-0 group-hover/gallery:opacity-100 focus-visible:opacity-100 lg:grid")}
+              className={cn(
+                arrowClass,
+                "right-3 hidden opacity-0 group-hover/gallery:opacity-100 focus-visible:opacity-100 lg:grid",
+              )}
             >
               <ChevronRightIcon className="size-5" aria-hidden="true" />
             </button>
@@ -116,7 +123,10 @@ export function ProductGallery({ images, productName, focusIndex }: Props) {
               {images.map((image, index) => (
                 <span
                   key={image.url}
-                  className={cn("h-1.5 rounded-pill transition-all", index === selected ? "w-6 bg-brand" : "w-1.5 bg-line")}
+                  className={cn(
+                    "h-1.5 rounded-pill transition-all",
+                    index === selected ? "w-6 bg-brand" : "w-1.5 bg-line",
+                  )}
                 />
               ))}
             </div>
@@ -158,7 +168,7 @@ export function ProductGallery({ images, productName, focusIndex }: Props) {
   );
 }
 
-// Imagen a pantalla completa: en persianas y tapetes la textura decide la compra.
+// Imagen a pantalla completa: en pisos, muros y persianas la textura decide la compra.
 function ZoomDialog({
   images,
   productName,
@@ -200,14 +210,26 @@ function ZoomDialog({
           <span className="text-sm font-medium text-heading">
             {selected + 1} / {images.length}
           </span>
-          <DialogClose className="grid size-tap place-items-center rounded-full text-brand hover:bg-surface" aria-label="Cerrar">
+          <DialogClose
+            className="grid size-tap place-items-center rounded-full text-brand hover:bg-surface"
+            aria-label="Cerrar"
+          >
             <XIcon className="size-6" aria-hidden="true" />
           </DialogClose>
         </div>
-        <Carousel setApi={setApi} opts={{ startIndex }} className="min-h-0 flex-1" aria-label={`Imágenes ampliadas de ${productName}`}>
+        <Carousel
+          setApi={setApi}
+          opts={{ startIndex }}
+          className="min-h-0 flex-1"
+          aria-label={`Imágenes ampliadas de ${productName}`}
+        >
           <CarouselContent className="-ml-0 h-[calc(100dvh-4rem)]">
             {images.map((image, index) => (
-              <CarouselItem key={image.url} className="relative h-full pl-0" aria-label={`${index + 1} de ${images.length}`}>
+              <CarouselItem
+                key={image.url}
+                className="relative h-full pl-0"
+                aria-label={`${index + 1} de ${images.length}`}
+              >
                 <Image src={image.url} alt={image.alt} fill sizes="100vw" className="object-contain" />
               </CarouselItem>
             ))}

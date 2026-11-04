@@ -33,7 +33,10 @@ export function SortSelect({ variant }: { variant: "toolbar" | "inline" }) {
             </option>
           ))}
         </select>
-        <ChevronDownIcon className="pointer-events-none absolute top-1/2 right-3 size-4 -translate-y-1/2 text-brand" aria-hidden="true" />
+        <ChevronDownIcon
+          className="pointer-events-none absolute top-1/2 right-3 size-4 -translate-y-1/2 text-brand"
+          aria-hidden="true"
+        />
       </div>
     </div>
   );

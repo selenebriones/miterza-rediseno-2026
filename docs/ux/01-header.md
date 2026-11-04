@@ -156,3 +156,21 @@ Código en `src/components/header/` y `src/components/cart/`. Ajustes respecto a
 - **La barra de búsqueda móvil es un botón** que abre la capa de búsqueda: así el teclado no aparece por accidente y la capa tiene espacio para los resultados.
 - **Datos provisionales:** menú, aviso y búsqueda salen de `src/lib/navigation.ts` y `src/lib/search.ts` con la forma de los modelos de Prisma; al conectar la base solo cambia el cuerpo de esas funciones. El monto de envío gratis ($999) está por confirmar.
 - **Logo:** se usa el PNG de miterza.com pintado de blanco con CSS. Falta el SVG oficial (versión a color y en blanco).
+
+---
+
+## Actualización: header al estilo de terza.com (2026-11-03)
+
+Se reemplazó el header verde con buscador al centro por el de `terza-sitio`:
+
+- **Una sola barra blanca** con borde inferior: logo a color a la izquierda, menú con flechas (Persianas, Tapetes, Ofertas) y, a la derecha, botón de búsqueda circular en lima claro (`#d5fe7d`), favoritos (círculo con borde y contador), **"Mi cuenta"** en píldora verde oscuro y **"Carrito"** en píldora lima con contador.
+- **Búsqueda:** el botón circular abre un panel que baja desde arriba (centrado en desktop, a pantalla completa en móvil) con las mismas sugerencias de productos y categorías.
+- **Móvil:** menú ☰, logo, búsqueda y carrito (círculos de 44 px). Se quitó la barra de búsqueda verde que había debajo.
+- **Mega menú:** se conserva; ahora se abre justo debajo de la barra y la línea lima de énfasis queda en el borde inferior del header.
+- **Contraste:** el texto de la píldora lima es verde oscuro (en terza.com es blanco, pero blanco sobre `#bcdc00` da 1.57:1).
+
+### Segunda actualización (2026-11-03)
+
+- **Botones de cuenta y carrito:** solo ícono dentro de un círculo de 48 px, a juego con la búsqueda y los favoritos: búsqueda (lima claro), favoritos (borde), cuenta (verde oscuro) y carrito (lima), estos dos últimos con contador.
+- **Mega menú de ancho completo** (como en terza-sitio): al abrir Persianas o Tapetes baja un panel bajo el header con título y descripción de la categoría, la lista de líneas a la izquierda (con flecha) y, a la derecha, 4 tarjetas de productos de la línea elegida (foto 3:2, nombre y precio) más el botón lima "Ver todo <línea>". Al pasar el cursor por una línea cambian las tarjetas. Se abre con cursor, clic o teclado; Esc cierra y devuelve el foco; navegar a otra página lo cierra.
+- Las tarjetas salen de la base (hasta 4 productos por línea, destacados primero) con la etiqueta de caché `catalog`.

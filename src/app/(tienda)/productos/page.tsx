@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { Suspense } from "react";
 import { CatalogSkeleton, CatalogView, describeCatalog } from "@/components/catalog/catalog-view";
-import { parseCatalogParams } from "@/lib/catalog-params";
+import { parseCatalogParams, scopeAttributes } from "@/lib/catalog-params";
 import { getCategoryTree } from "@/lib/categories";
 
 export async function generateMetadata({ searchParams }: PageProps<"/productos">): Promise<Metadata> {
@@ -16,11 +16,13 @@ export async function generateMetadata({ searchParams }: PageProps<"/productos">
     filters.minPrice === null &&
     filters.maxPrice === null &&
     !filters.inStock &&
-    (filters.sort === "recomendados");
+    filters.sort === "recomendados";
 
   return {
     title: `${title} | Mi Terza`,
-    description: description ?? "Persianas y tapetes Terza en línea, con más de 40 años de respaldo y las mejores garantías.",
+    description:
+      description ??
+      "Pisos, muros, persianas, exterior y accesorios Terza en línea, con más de 40 años de respaldo y las mejores garantías.",
     robots: indexable ? undefined : { index: false, follow: true },
   };
 }
@@ -35,5 +37,5 @@ export default function ProductsPage({ searchParams }: PageProps<"/productos">) 
 
 async function Catalog({ searchParams }: Pick<PageProps<"/productos">, "searchParams">) {
   const [filters, tree] = await Promise.all([searchParams.then(parseCatalogParams), getCategoryTree()]);
-  return <CatalogView filters={filters} tree={tree} />;
+  return <CatalogView filters={scopeAttributes(filters, tree)} tree={tree} />;
 }

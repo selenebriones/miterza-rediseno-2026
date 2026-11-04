@@ -13,7 +13,12 @@ type Props = {
 
 // Al cambiar una opción se conserva el resto; si esa combinación no existe,
 // se busca la primera disponible con el valor elegido.
-export function resolveVariant(variants: ProductVariant[], current: Record<string, string>, name: string, value: string) {
+export function resolveVariant(
+  variants: ProductVariant[],
+  current: Record<string, string>,
+  name: string,
+  value: string,
+) {
   const wanted = { ...current, [name]: value };
   const exact = variants.find((v) => Object.entries(wanted).every(([k, val]) => v.options[k] === val));
   if (exact) return exact;
@@ -52,7 +57,12 @@ function OptionGroup({ option, variants, selected, onSelect }: { option: Product
 
   // radiogroup: las flechas mueven la selección (patrón ARIA).
   function onKeyDown(event: React.KeyboardEvent, index: number) {
-    const step = event.key === "ArrowRight" || event.key === "ArrowDown" ? 1 : event.key === "ArrowLeft" || event.key === "ArrowUp" ? -1 : 0;
+    const step =
+      event.key === "ArrowRight" || event.key === "ArrowDown"
+        ? 1
+        : event.key === "ArrowLeft" || event.key === "ArrowUp"
+          ? -1
+          : 0;
     if (!step) return;
     event.preventDefault();
     let next = index;
@@ -70,7 +80,10 @@ function OptionGroup({ option, variants, selected, onSelect }: { option: Product
       <div
         role="radiogroup"
         aria-labelledby={labelId}
-        className={cn("flex gap-2.5", isSwatch ? "flex-wrap" : "-mx-4 overflow-x-auto px-4 pb-1 sm:mx-0 sm:flex-wrap sm:px-0")}
+        className={cn(
+          "flex gap-2.5",
+          isSwatch ? "flex-wrap" : "-mx-4 overflow-x-auto px-4 pb-1 sm:mx-0 sm:flex-wrap sm:px-0",
+        )}
       >
         {option.values.map(({ value, swatch }, index) => {
           const checked = value === current;

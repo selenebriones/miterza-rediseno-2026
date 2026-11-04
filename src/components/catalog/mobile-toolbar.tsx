@@ -6,7 +6,7 @@ import { AccordionContent, AccordionItem, AccordionTrigger } from "@/components/
 import { useScrolledPast } from "@/hooks/use-scrolled-past";
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import type { CatalogResult } from "@/lib/catalog";
-import { catalogHref, countActiveFilters, SORT_OPTIONS, type CatalogFilters } from "@/lib/catalog-params";
+import { catalogHref, CLEARED_FILTERS, countActiveFilters, SORT_OPTIONS } from "@/lib/catalog-params";
 import { cn } from "@/lib/utils";
 import { useCatalog } from "./catalog-provider";
 import { FilterPanel } from "./filter-panel";
@@ -17,7 +17,7 @@ type Props = {
   total: number; // resultados con los filtros aplicados
 };
 
-const CLEARED = { categories: [], minPrice: null, maxPrice: null, onSale: false, inStock: false } satisfies Partial<CatalogFilters>;
+const CLEARED = CLEARED_FILTERS;
 
 export function MobileToolbar({ facets, total }: Props) {
   const { filters, navigate } = useCatalog();
@@ -116,7 +116,6 @@ export function MobileToolbar({ facets, total }: Props) {
               onChange={(changes) => setDraft((d) => ({ ...d, ...changes }))}
               facets={facets}
               idPrefix="m"
-              defaultOpen={["categoria"]}
               before={
                 <AccordionItem value="orden" className="border-line">
                   <AccordionTrigger className="min-h-tap items-center py-0 text-base font-semibold text-heading hover:no-underline">

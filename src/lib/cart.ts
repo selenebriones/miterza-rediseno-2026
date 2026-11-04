@@ -2,7 +2,7 @@
 // y los precios tienen que ser los actuales al validar el carrito o crear el pedido.
 
 import type { Prisma } from "@/generated/prisma/client";
-import type { CartLineInput, ValidatedLine } from "./cart-types";
+import { MAX_PER_LINE, type CartLineInput, type ValidatedLine } from "./cart-types";
 import { db } from "./db";
 
 export const variantForCartSelect = {
@@ -43,17 +43,17 @@ export function toValidatedLine(variant: VariantForCart): ValidatedLine {
   };
 }
 
-// Normaliza lo que manda el navegador: ids únicos, cantidades enteras entre 1 y 10, máximo 50 líneas.
+// Normaliza lo que manda el navegador: ids únicos, cantidades enteras entre 1 y MAX_PER_LINE, máximo 50 líneas.
 export function parseCartLines(raw: unknown): CartLineInput[] | null {
   if (!Array.isArray(raw) || raw.length === 0 || raw.length > 50) return null;
   const lines = new Map<string, number>();
   for (const entry of raw) {
     const variantId = typeof entry?.variantId === "string" ? entry.variantId.slice(0, 40) : "";
     const quantity = Number(entry?.quantity);
-    if (!variantId || !Number.isInteger(quantity) || quantity < 1 || quantity > 10) return null;
+    if (!variantId || !Number.isInteger(quantity) || quantity < 1 || quantity > MAX_PER_LINE) return null;
     lines.set(variantId, (lines.get(variantId) ?? 0) + quantity);
   }
-  return [...lines].map(([variantId, quantity]) => ({ variantId, quantity: Math.min(quantity, 10) }));
+  return [...lines].map(([variantId, quantity]) => ({ variantId, quantity: Math.min(quantity, MAX_PER_LINE) }));
 }
 
 export async function validateCartLines(lines: CartLineInput[]): Promise<ValidatedLine[]> {

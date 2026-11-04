@@ -174,7 +174,7 @@ export function SearchBox({ variant, autoFocus, onNavigate, trailing, popularCat
             autoFocus={autoFocus}
             autoComplete="off"
             enterKeyHint="search"
-            placeholder="Buscar persianas, tapetes, líneas…"
+            placeholder="Buscar pisos, persianas, colecciones…"
             aria-label="Buscar productos"
             role="combobox"
             aria-expanded={panelOpen}

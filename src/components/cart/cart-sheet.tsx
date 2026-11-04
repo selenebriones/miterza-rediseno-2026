@@ -26,7 +26,7 @@ export function CartSheet() {
               <ShoppingBagIcon className="size-9 text-brand" aria-hidden="true" />
             </span>
             <p className="text-lg font-semibold text-heading">Tu carrito está vacío</p>
-            <p className="text-sm">Explora nuestras persianas y tapetes y encuentra el ideal para tu espacio.</p>
+            <p className="text-sm">Explora nuestros pisos, muros y persianas y encuentra el ideal para tu espacio.</p>
             <SheetClose asChild>
               <Link
                 href="/productos"

@@ -21,8 +21,34 @@ export type CatalogFilters = {
   maxPrice: number | null;
   onSale: boolean;
   inStock: boolean;
+  attributes: Record<string, string[]>; // { estilo: ["Bilbao"], tono: ["Gris", "Beige"] }
   sort: SortKey;
   page: number;
+};
+
+// Filtros por atributo (los mismos de terza-sitio). Cada categoría usa solo algunos; el panel muestra
+// los que tienen valores en los productos de las categorías elegidas. La clave es también el
+// parámetro de la URL (?estilo=Bilbao,Castle).
+export const ATTRIBUTE_FILTERS = [
+  { key: "linea", label: "Línea" },
+  { key: "coleccion", label: "Colección" },
+  { key: "tipo", label: "Tipo" },
+  { key: "estilo", label: "Estilo" },
+  { key: "especie", label: "Especie" },
+  { key: "tono", label: "Tono" },
+  { key: "color", label: "Color" },
+  { key: "uso", label: "Uso" },
+  { key: "unidad", label: "Presentación" },
+] as const;
+
+// Lo que dejan "Limpiar" y "Limpiar filtros" (conserva la búsqueda y el orden).
+export const CLEARED_FILTERS: Partial<CatalogFilters> = {
+  categories: [],
+  minPrice: null,
+  maxPrice: null,
+  onSale: false,
+  inStock: false,
+  attributes: {},
 };
 
 export const PRICE_RANGES = [
@@ -48,6 +74,22 @@ export function findCategory(tree: CategoryNode[], slug: string) {
     if (child) return { ...child, description: null, children: [], parent };
   }
   return null;
+}
+
+// Los filtros de atributo solo aplican con una sola categoría final elegida (una subcategoría, o una
+// sección sin subcategorías como Accesorios): cada una tiene sus propios estilos, tonos, etc. y en una
+// sección como Pisos se mezclarían los de alfombras con los de pisos vinílicos.
+export function attributesApply(tree: CategoryNode[], categories: string[]) {
+  if (categories.length !== 1) return false;
+  const found = findCategory(tree, categories[0]);
+  return Boolean(found && (found.parent || found.children.length === 0));
+}
+
+// Quita de los filtros los atributos que no aplican a la categoría elegida (p. ej. una URL vieja).
+export function scopeAttributes(filters: CatalogFilters, tree: CategoryNode[]): CatalogFilters {
+  return attributesApply(tree, filters.categories) || Object.keys(filters.attributes).length === 0
+    ? filters
+    : { ...filters, attributes: {} };
 }
 
 // Marcar una categoría completa sustituye a sus líneas; desmarcar una línea cuando
@@ -86,13 +128,23 @@ function toPrice(value: string) {
 export function parseCatalogParams(params: RawParams): CatalogFilters {
   const q = first(params.q).trim().slice(0, 80);
   // Solo se validan el formato y la cantidad; un slug inexistente simplemente no da resultados.
-  const categories = [...new Set(first(params.categoria).split(","))].filter((slug) => /^[a-z0-9-]{1,60}$/.test(slug)).slice(0, 20);
+  const categories = [...new Set(first(params.categoria).split(","))]
+    .filter((slug) => /^[a-z0-9-]{1,60}$/.test(slug))
+    .slice(0, 20);
   const sortValue = first(params.orden);
   const defaultSort: SortKey = q ? "relevancia" : "recomendados";
   const sort = SORT_OPTIONS.some((o) => o.value === sortValue && (!o.searchOnly || q))
     ? (sortValue as SortKey)
     : defaultSort;
   const page = Math.max(1, Math.floor(Number(first(params.pagina)) || 1));
+  const attributes: Record<string, string[]> = {};
+  for (const { key } of ATTRIBUTE_FILTERS) {
+    const values = [...new Set(first(params[key]).split(","))]
+      .map((v) => v.trim().slice(0, 60))
+      .filter(Boolean)
+      .slice(0, 30);
+    if (values.length) attributes[key] = values;
+  }
 
   return {
     q,
@@ -101,6 +153,7 @@ export function parseCatalogParams(params: RawParams): CatalogFilters {
     maxPrice: toPrice(first(params.max)),
     onSale: first(params.ofertas) === "1",
     inStock: first(params.disponible) === "1",
+    attributes,
     sort,
     page,
   };
@@ -117,9 +170,13 @@ export function catalogHref(filters: CatalogFilters, changes: Partial<CatalogFil
   if (next.maxPrice !== null) params.set("max", String(next.maxPrice));
   if (next.onSale) params.set("ofertas", "1");
   if (next.inStock) params.set("disponible", "1");
+  for (const { key } of ATTRIBUTE_FILTERS) {
+    const values = next.attributes[key];
+    if (values?.length) params.set(key, values.join(","));
+  }
   if (next.sort !== (next.q ? "relevancia" : "recomendados")) params.set("orden", next.sort);
   if (next.page > 1) params.set("pagina", String(next.page));
-  const query = params.toString().replace(/%2C/g, ",");
+  const query = params.toString().replace(/%2C/g, ",").replace(/\+/g, "%20");
   return query ? `/productos?${query}` : "/productos";
 }
 
@@ -128,6 +185,7 @@ export function countActiveFilters(filters: CatalogFilters) {
     filters.categories.length +
     (filters.minPrice !== null || filters.maxPrice !== null ? 1 : 0) +
     (filters.onSale ? 1 : 0) +
-    (filters.inStock ? 1 : 0)
+    (filters.inStock ? 1 : 0) +
+    Object.values(filters.attributes).reduce((sum, values) => sum + values.length, 0)
   );
 }

@@ -1,4 +1,4 @@
-import { getAnnouncement, getHeaderNavigation } from "@/lib/navigation";
+import { getAnnouncement, getHeaderNavigation, getMenuProducts } from "@/lib/navigation";
 import { getPopularCategories } from "@/lib/search";
 import { AnnouncementBar } from "./announcement-bar";
 import { HeaderBar } from "./header-bar";
@@ -9,6 +9,12 @@ export async function SiteHeader() {
     getAnnouncement(),
     getPopularCategories(),
   ]);
+  // Productos de cada línea (o categoría sin líneas) para las tarjetas del mega menú.
+  const menuProducts = await getMenuProducts(
+    navigation.main
+      .flatMap((item) => (item.children?.length ? item.children.map((c) => c.categorySlug) : [item.categorySlug]))
+      .filter((slug): slug is string => Boolean(slug)),
+  );
 
   return (
     <>
@@ -19,7 +25,12 @@ export async function SiteHeader() {
         Saltar al contenido
       </a>
       <AnnouncementBar announcement={announcement} links={navigation.top} />
-      <HeaderBar main={navigation.main} secondary={navigation.top} popularCategories={popularCategories} />
+      <HeaderBar
+        main={navigation.main}
+        secondary={navigation.top}
+        popularCategories={popularCategories}
+        menuProducts={menuProducts}
+      />
     </>
   );
 }

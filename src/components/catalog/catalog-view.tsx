@@ -17,7 +17,8 @@ export function describeCatalog(filters: CatalogFilters, tree: CategoryNode[]) {
   if (filters.q) return { title: `Resultados para «${filters.q}»`, description: null, category: null };
   if (category) {
     return {
-      title: category.parent ? `${category.parent.name} ${category.name}` : category.name,
+      // Las subcategorías ya traen su nombre completo ("Pisos vinílicos", "Alfombras").
+      title: category.name,
       description: category.description,
       category,
     };
@@ -27,7 +28,8 @@ export function describeCatalog(filters: CatalogFilters, tree: CategoryNode[]) {
   if (filters.categories.length > 1 && parents.size === 1 && !parents.has(null)) {
     return { title: [...parents][0] as string, description: null, category: null };
   }
-  if (filters.onSale) return { title: "Ofertas", description: "Precios especiales por tiempo limitado.", category: null };
+  if (filters.onSale)
+    return { title: "Ofertas", description: "Precios especiales por tiempo limitado.", category: null };
   return { title: "Todos los productos", description: null, category: null };
 }
 
@@ -43,7 +45,9 @@ export async function CatalogView({ filters, tree }: { filters: CatalogFilters; 
         <Breadcrumbs
           items={[
             { label: "Productos", href: "/productos" },
-            ...(category?.parent ? [{ label: category.parent.name, href: `/productos?categoria=${category.parent.slug}` }] : []),
+            ...(category?.parent
+              ? [{ label: category.parent.name, href: `/productos?categoria=${category.parent.slug}` }]
+              : []),
             ...(category ? [{ label: category.name }] : []),
           ]}
         />
@@ -84,7 +88,7 @@ export async function CatalogView({ filters, tree }: { filters: CatalogFilters; 
               {result.total === 0 ? (
                 <EmptyState filters={filters} tree={tree} />
               ) : (
-                <ul className="grid grid-cols-2 gap-x-3 gap-y-8 md:grid-cols-3 lg:gap-x-6 2xl:grid-cols-4">
+                <ul className="grid grid-cols-2 gap-3 md:grid-cols-3 lg:gap-6 2xl:grid-cols-4">
                   {result.products.map((product, index) => (
                     <li key={product.slug} className="flex">
                       <ProductCard
@@ -158,13 +162,15 @@ export function CatalogSkeleton() {
             <div className="h-tap animate-pulse rounded-pill bg-muted" />
             <div className="h-tap animate-pulse rounded-pill bg-muted" />
           </div>
-          <ul className="mt-6 grid grid-cols-2 gap-x-3 gap-y-8 md:grid-cols-3 lg:gap-x-6 2xl:grid-cols-4">
+          <ul className="mt-6 grid grid-cols-2 gap-3 md:grid-cols-3 lg:gap-6 2xl:grid-cols-4">
             {Array.from({ length: 6 }, (_, i) => (
-              <li key={i}>
-                <div className="aspect-[4/5] animate-pulse rounded-card bg-muted" />
-                <div className="mt-3 h-3 w-1/3 animate-pulse rounded bg-muted" />
-                <div className="mt-2 h-4 w-4/5 animate-pulse rounded bg-muted" />
-                <div className="mt-2 h-5 w-1/2 animate-pulse rounded bg-muted" />
+              <li key={i} className="overflow-hidden rounded-[24px] bg-white shadow-[0_4px_18px_rgba(0,0,0,0.08)]">
+                <div className="aspect-square animate-pulse bg-muted" />
+                <div className="p-4 sm:p-5">
+                  <div className="h-4 w-4/5 animate-pulse rounded bg-muted" />
+                  <div className="mt-2 h-3 w-1/3 animate-pulse rounded bg-muted" />
+                  <div className="mt-4 h-5 w-1/2 animate-pulse rounded bg-muted" />
+                </div>
               </li>
             ))}
           </ul>

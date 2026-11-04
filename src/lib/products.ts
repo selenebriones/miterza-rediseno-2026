@@ -19,10 +19,16 @@ export type ProductSummary = {
   hasPriceRange: boolean; // variantes con precios distintos → "Desde"
   imageUrl: string | null;
   imageAlt: string;
+  hoverImageUrl: string | null; // segunda foto: aparece al pasar el cursor por la tarjeta
+  // Productos con una sola variante se agregan al carrito desde la tarjeta;
+  // los que piden elegir color o medida abren la vista rápida.
+  singleVariantId: string | null;
   stock: number;
   lowStockAlert: number;
   isNew: boolean;
   isFeatured: boolean;
+  areaPerBox: number | null; // pisos: m² por caja (el precio es por caja)
+  brandLine: string | null; // persianas: línea comercial (Optima, Select, Stylo…) del atributo `linea`
 };
 
 export type ProductImage = { url: string; alt: string; variantOption?: string };
@@ -44,6 +50,7 @@ export type ProductDetail = ProductSummary & {
   options: ProductOption[];
   variants: ProductVariant[];
   installVideoUrl: string | null;
+  format: string | null; // pisos: medida de la pieza
 };
 
 export const productSummarySelect = {
@@ -53,9 +60,13 @@ export const productSummarySelect = {
   compareAtPrice: true,
   isFeatured: true,
   publishedAt: true,
-  categories: { select: { slug: true, name: true, installVideoUrl: true, parent: { select: { slug: true, name: true } } } },
-  images: { orderBy: { position: "asc" }, take: 1, select: { url: true, alt: true } },
-  variants: { where: { isActive: true }, select: { price: true, stock: true, lowStockAlert: true } },
+  areaPerBox: true,
+  attributes: true,
+  categories: {
+    select: { slug: true, name: true, installVideoUrl: true, parent: { select: { slug: true, name: true } } },
+  },
+  images: { orderBy: { position: "asc" }, take: 2, select: { url: true, alt: true } },
+  variants: { where: { isActive: true }, select: { id: true, price: true, stock: true, lowStockAlert: true } },
 } satisfies Prisma.ProductSelect;
 
 type SummaryRow = Prisma.ProductGetPayload<{ select: typeof productSummarySelect }>;
@@ -77,26 +88,55 @@ export function toSummary(row: SummaryRow, now = Date.now()): ProductSummary {
     hasPriceRange: new Set(prices).size > 1,
     imageUrl: row.images[0]?.url ?? null,
     imageAlt: row.images[0]?.alt ?? "",
+    hoverImageUrl: row.images[1]?.url ?? null,
+    singleVariantId: row.variants.length === 1 ? row.variants[0].id : null,
     stock: row.variants.reduce((sum, v) => sum + v.stock, 0),
     lowStockAlert: row.variants.length ? Math.min(...row.variants.map((v) => v.lowStockAlert)) : 0,
     isNew: row.publishedAt ? now - row.publishedAt.getTime() < NEW_PRODUCT_DAYS * 86_400_000 : false,
     isFeatured: row.isFeatured,
+    areaPerBox: toNumber(row.areaPerBox),
+    brandLine: (row.attributes as Record<string, string> | null)?.linea ?? null,
   };
 }
 
-export async function getFeaturedProducts(limit = 8) {
+// Productos del slider "Nuevos productos" del home: los más recientes de cada categoría (los marcados
+// como nuevos primero), intercalados (uno de cada categoría por vuelta) para que aparezcan todas.
+export async function getFeaturedProducts(limit = 12) {
   "use cache";
   cacheLife("hours");
   cacheTag(CACHE_TAGS.catalog);
 
-  const rows = await db.product.findMany({
-    where: { status: "ACTIVE", isFeatured: true },
-    orderBy: [{ publishedAt: "desc" }],
-    take: limit,
-    select: productSummarySelect,
+  // Categorías finales: las subcategorías y las secciones sin subcategorías (Accesorios).
+  const categories = await db.category.findMany({
+    where: { isVisible: true, children: { none: {} } },
+    orderBy: [{ parent: { position: "asc" } }, { position: "asc" }],
+    select: { slug: true },
   });
+  const perCategory = Math.ceil(limit / Math.max(categories.length, 1)) + 1;
   const now = Date.now();
-  return rows.map((row) => toSummary(row, now));
+
+  const groups = (
+    await Promise.all(
+      categories.map((category) =>
+        db.product.findMany({
+          where: { status: "ACTIVE", categories: { some: { slug: category.slug } } },
+          orderBy: [{ isFeatured: "desc" }, { publishedAt: "desc" }],
+          take: perCategory,
+          select: productSummarySelect,
+        }),
+      ),
+    )
+  )
+    .map((rows) => rows.map((row) => toSummary(row, now)))
+    .filter((group) => group.length > 0)
+    // Primero las categorías con novedades más recientes.
+    .sort((a, b) => Number(b[0].isNew) - Number(a[0].isNew));
+
+  const result: ProductSummary[] = [];
+  for (let i = 0; result.length < limit && groups.some((g) => i < g.length); i++) {
+    for (const group of groups) if (i < group.length && result.length < limit) result.push(group[i]);
+  }
+  return result;
 }
 
 export async function getProductSlugs() {
@@ -119,9 +159,14 @@ export async function getProductBySlug(slug: string): Promise<ProductDetail | nu
       ...productSummarySelect,
       description: true,
       specs: true,
+      format: true,
       images: {
         orderBy: { position: "asc" },
-        select: { url: true, alt: true, variant: { select: { optionValues: { select: { optionValue: { select: { value: true } } } } } } },
+        select: {
+          url: true,
+          alt: true,
+          variant: { select: { optionValues: { select: { optionValue: { select: { value: true } } } } } },
+        },
       },
       options: {
         orderBy: { position: "asc" },
@@ -171,6 +216,7 @@ export async function getProductBySlug(slug: string): Promise<ProductDetail | nu
       lowStockAlert: v.lowStockAlert,
     })),
     installVideoUrl: line?.installVideoUrl ?? null,
+    format: row.format,
   };
 }
 
@@ -207,4 +253,19 @@ export async function getRelatedProducts(product: ProductSummary, limit = 4) {
       : [];
   const now = Date.now();
   return [...sameLine, ...rest].map((row) => toSummary(row, now));
+}
+
+// Productos por slug, en el orden pedido (favoritos). Ignora los que ya no existen.
+export async function getProductsBySlugs(slugs: string[]) {
+  "use cache";
+  cacheLife("hours");
+  cacheTag(CACHE_TAGS.catalog);
+
+  const rows = await db.product.findMany({
+    where: { status: "ACTIVE", slug: { in: slugs } },
+    select: productSummarySelect,
+  });
+  const now = Date.now();
+  const bySlug = new Map(rows.map((row) => [row.slug, toSummary(row, now)]));
+  return slugs.flatMap((slug) => bySlug.get(slug) ?? []);
 }

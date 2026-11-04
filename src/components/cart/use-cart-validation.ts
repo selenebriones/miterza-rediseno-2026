@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { reconcileCart, type ValidatedLine } from "@/lib/cart-types";
+import { MAX_PER_LINE, reconcileCart, type ValidatedLine } from "@/lib/cart-types";
 import { useCart } from "./cart-provider";
 
 type Result = { key: string; notices: string[]; stock: Record<string, number>; error: boolean };
@@ -52,7 +52,7 @@ export function useCartValidation() {
     validating: Boolean(key) && result?.key !== key && !result?.error,
     notices: result?.notices ?? [],
     error: result?.error ?? false,
-    // Tope de cantidad por variante: existencias reales (máximo 10 por compra).
-    maxFor: (variantId: string) => Math.min(result?.stock[variantId] ?? 10, 10),
+    // Tope de cantidad por variante: existencias reales (máximo MAX_PER_LINE por compra).
+    maxFor: (variantId: string) => Math.min(result?.stock[variantId] ?? MAX_PER_LINE, MAX_PER_LINE),
   };
 }

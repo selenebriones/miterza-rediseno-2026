@@ -1,7 +1,14 @@
 "use client";
 
 import { XIcon } from "lucide-react";
-import { countActiveFilters, findCategory, PRICE_RANGES, type CatalogFilters } from "@/lib/catalog-params";
+import {
+  ATTRIBUTE_FILTERS,
+  CLEARED_FILTERS,
+  countActiveFilters,
+  findCategory,
+  PRICE_RANGES,
+  type CatalogFilters,
+} from "@/lib/catalog-params";
 import { formatPrice } from "@/lib/store-config";
 import { useCatalog } from "./catalog-provider";
 
@@ -27,17 +34,35 @@ export function ActiveFilters({ className }: { className?: string }) {
       remove: { categories: filters.categories.filter((s) => s !== slug) },
     })),
     ...(filters.minPrice !== null || filters.maxPrice !== null
-      ? [{ key: "price", label: priceLabel(filters.minPrice, filters.maxPrice), remove: { minPrice: null, maxPrice: null } }]
+      ? [
+          {
+            key: "price",
+            label: priceLabel(filters.minPrice, filters.maxPrice),
+            remove: { minPrice: null, maxPrice: null },
+          },
+        ]
       : []),
     ...(filters.onSale ? [{ key: "sale", label: "Solo ofertas", remove: { onSale: false } }] : []),
     ...(filters.inStock ? [{ key: "stock", label: "Solo disponibles", remove: { inStock: false } }] : []),
+    ...ATTRIBUTE_FILTERS.flatMap(({ key, label }) =>
+      (filters.attributes[key] ?? []).map((value) => ({
+        key: `attr-${key}-${value}`,
+        label: `${label}: ${value}`,
+        remove: {
+          attributes: { ...filters.attributes, [key]: filters.attributes[key].filter((v) => v !== value) },
+        },
+      })),
+    ),
   ];
 
   if (chips.length === 0) return null;
 
   return (
     <div className={className}>
-      <ul aria-label="Filtros aplicados" className="-mx-4 flex gap-2 overflow-x-auto px-4 pb-1 lg:mx-0 lg:flex-wrap lg:px-0">
+      <ul
+        aria-label="Filtros aplicados"
+        className="-mx-4 flex gap-2 overflow-x-auto px-4 pb-1 lg:mx-0 lg:flex-wrap lg:px-0"
+      >
         {chips.map((chip) => (
           <li key={chip.key} className="shrink-0">
             <button
@@ -55,7 +80,7 @@ export function ActiveFilters({ className }: { className?: string }) {
           <li className="shrink-0">
             <button
               type="button"
-              onClick={() => navigate({ categories: [], minPrice: null, maxPrice: null, onSale: false, inStock: false })}
+              onClick={() => navigate(CLEARED_FILTERS)}
               className="inline-flex h-9 items-center px-2 text-sm font-semibold text-brand underline underline-offset-4 hover:no-underline"
             >
               Limpiar filtros

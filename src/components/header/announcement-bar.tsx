@@ -27,7 +27,7 @@ export function AnnouncementBar({ announcement, links }: Props) {
   const showMessage = announcement && !dismissed;
 
   return (
-    <div className={cn("bg-accent text-sm text-brand", !showMessage && "max-lg:hidden")}>
+    <div className={cn("bg-brand text-sm text-white", !showMessage && "max-lg:hidden")}>
       <div className="container flex h-10 items-center gap-4 lg:h-8">
         {showMessage ? (
           <p className="flex-1 truncate text-center font-medium lg:text-left">
@@ -62,7 +62,7 @@ export function AnnouncementBar({ announcement, links }: Props) {
             type="button"
             onClick={dismiss}
             aria-label="Cerrar aviso"
-            className="-mr-2 grid size-10 shrink-0 place-items-center rounded-full hover:bg-accent-hover lg:size-7"
+            className="-mr-2 grid size-10 shrink-0 place-items-center rounded-full hover:bg-white/15 lg:size-7"
           >
             <XIcon className="size-4" aria-hidden="true" />
           </button>

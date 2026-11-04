@@ -41,8 +41,12 @@ const config: Config = {
           DEFAULT: "#bcdc00",
           hover: "#a9c600",
           soft: "#f3f9cc",
+          light: "#d5fe7d", // fondo del botón de búsqueda del header (igual que terza.com)
         },
+        sale: "#ffa202", // píldora de descuento con texto blanco (a petición de la usuaria)
         surface: "#f0fae5",
+        cream: "#f9f8f5", // fondo del footer (igual que terza-sitio)
+        mist: "#f3f4ee", // fondo de secciones secundarias (relacionados)
         heading: "#000000",
         body: "#555555",
         // `muted` / `muted-foreground` (#767676, 4.54:1) los define globals.css para shadcn.
@@ -83,9 +87,17 @@ const config: Config = {
           "0%, 100%": { transform: "scale(1)" },
           "50%": { transform: "scale(1.2)" },
         },
+        // Acercamiento lento de la foto del hero y entrada del texto.
+        "hero-zoom": { from: { transform: "scale(1)" }, to: { transform: "scale(1.08)" } },
+        "hero-rise": {
+          from: { opacity: "0", transform: "translateY(1.5rem)" },
+          to: { opacity: "1", transform: "translateY(0)" },
+        },
       },
       animation: {
         "cart-bump": "cart-bump 300ms ease-out",
+        "hero-zoom": "hero-zoom 9s ease-out forwards",
+        "hero-rise": "hero-rise 700ms cubic-bezier(0.22, 1, 0.36, 1) both",
       },
     },
   },

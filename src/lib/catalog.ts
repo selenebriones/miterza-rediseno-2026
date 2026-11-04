@@ -3,11 +3,19 @@
 
 import { cacheLife, cacheTag } from "next/cache";
 import type { Prisma } from "@/generated/prisma/client";
-import { PAGE_SIZE, PRICE_RANGES, type CatalogFilters, type CategoryNode } from "./catalog-params";
+import {
+  ATTRIBUTE_FILTERS,
+  attributesApply,
+  PAGE_SIZE,
+  PRICE_RANGES,
+  type CatalogFilters,
+  type CategoryNode,
+} from "./catalog-params";
 import { CACHE_TAGS, db } from "./db";
 import { productSummarySelect, toSummary, type ProductSummary } from "./products";
 
-type FilterKey = "categories" | "price" | "onSale" | "inStock";
+// `attr:<clave>` excluye un solo filtro de atributo; `attributes`, todos.
+type FilterKey = "categories" | "price" | "onSale" | "inStock" | "attributes" | `attr:${string}`;
 
 // `except` permite contar resultados ignorando un filtro (para las facetas).
 function buildWhere(filters: CatalogFilters, except?: FilterKey): Prisma.ProductWhereInput {
@@ -38,6 +46,13 @@ function buildWhere(filters: CatalogFilters, except?: FilterKey): Prisma.Product
   if (except !== "inStock" && filters.inStock) {
     and.push({ variants: { some: { isActive: true, stock: { gt: 0 } } } });
   }
+  if (except !== "attributes") {
+    // Dentro de un atributo los valores se suman (O); entre atributos se combinan (Y).
+    for (const [key, values] of Object.entries(filters.attributes)) {
+      if (except === `attr:${key}` || values.length === 0) continue;
+      and.push({ OR: values.map((value) => ({ attributes: { path: [key], equals: value } })) });
+    }
+  }
   return { AND: and };
 }
 
@@ -64,6 +79,12 @@ export type CategoryFacet = {
   children: { slug: string; name: string; count: number }[];
 };
 
+export type AttributeFacet = {
+  key: string;
+  label: string;
+  values: { value: string; count: number }[];
+};
+
 export type CatalogResult = {
   products: ProductSummary[];
   total: number;
@@ -74,8 +95,47 @@ export type CatalogResult = {
     priceRanges: { label: string; min: number | null; max: number | null; count: number }[];
     onSale: number;
     inStock: number;
+    // Solo con una categoría final elegida (ver attributesApply).
+    attributes: AttributeFacet[];
   };
 };
+
+const collator = new Intl.Collator("es", { numeric: true, sensitivity: "base" });
+
+// Valores de cada atributo con su conteo. Un atributo con selección se cuenta ignorando su propio
+// filtro (para poder sumar más valores); los demás comparten una sola consulta.
+async function attributeFacets(filters: CatalogFilters, tree: CategoryNode[]): Promise<AttributeFacet[]> {
+  if (!attributesApply(tree, filters.categories)) return [];
+
+  const attributesOf = (where: Prisma.ProductWhereInput) =>
+    db.product
+      .findMany({ where, select: { attributes: true } })
+      .then((rows) => rows.map((r) => (r.attributes ?? {}) as Record<string, string>));
+
+  const selectedKeys = Object.keys(filters.attributes).filter((k) => filters.attributes[k].length > 0);
+  const [shared, ...own] = await Promise.all([
+    attributesOf(buildWhere(filters)),
+    ...selectedKeys.map((key) => attributesOf(buildWhere(filters, `attr:${key}`))),
+  ]);
+
+  return ATTRIBUTE_FILTERS.flatMap(({ key, label }) => {
+    const index = selectedKeys.indexOf(key);
+    const rows = index === -1 ? shared : own[index];
+    const counts = new Map<string, number>();
+    for (const attrs of rows) {
+      const value = attrs[key];
+      if (value) counts.set(value, (counts.get(value) ?? 0) + 1);
+    }
+    // Los valores elegidos se muestran aunque ya no tengan resultados, para poder quitarlos.
+    for (const value of filters.attributes[key] ?? []) if (!counts.has(value)) counts.set(value, 0);
+    // Un atributo con un solo valor y sin selección no ayuda a filtrar.
+    if (counts.size === 0 || (counts.size === 1 && index === -1)) return [];
+    const values = [...counts]
+      .map(([value, count]) => ({ value, count }))
+      .sort((a, b) => collator.compare(a.value, b.value));
+    return [{ key, label, values }];
+  });
+}
 
 export async function countCatalog(filters: CatalogFilters) {
   "use cache";
@@ -108,7 +168,7 @@ export async function queryCatalog(filters: CatalogFilters, tree: CategoryNode[]
       },
     });
 
-  const [rows, categoryCounts, priceCounts, onSale, inStock] = await Promise.all([
+  const [rows, categoryCounts, priceCounts, onSale, inStock, attributes] = await Promise.all([
     db.product.findMany({
       where,
       orderBy: orderBy(filters),
@@ -129,6 +189,7 @@ export async function queryCatalog(filters: CatalogFilters, tree: CategoryNode[]
     Promise.all(PRICE_RANGES.map(async (range) => ({ ...range, count: await withPrice(range.min, range.max) }))),
     db.product.count({ where: buildWhere({ ...filters, onSale: true }) }),
     db.product.count({ where: buildWhere({ ...filters, inStock: true }) }),
+    attributeFacets(filters, tree),
   ]);
 
   const now = Date.now();
@@ -137,6 +198,6 @@ export async function queryCatalog(filters: CatalogFilters, tree: CategoryNode[]
     total,
     page,
     pageCount,
-    facets: { categories: categoryCounts, priceRanges: priceCounts, onSale, inStock },
+    facets: { categories: categoryCounts, priceRanges: priceCounts, onSale, inStock, attributes },
   };
 }

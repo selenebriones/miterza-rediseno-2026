@@ -3,7 +3,8 @@
 import { formatPrice } from "./store-config";
 import type { CartItem } from "@/components/cart/cart-provider";
 
-export const MAX_PER_LINE = 10;
+// Tope de piezas (o cajas, en pisos) por producto en una compra.
+export const MAX_PER_LINE = 99;
 
 export type CartLineInput = { variantId: string; quantity: number };
 

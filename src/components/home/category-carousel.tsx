@@ -16,35 +16,39 @@ export function CategoryCarousel({ title, categories }: Props) {
   return (
     <section aria-labelledby="categorias" className="container py-12 lg:py-16">
       <Carousel opts={{ align: "start", containScroll: "trimSnaps" }} aria-label={title}>
-        <SectionHeader id="categorias" title={title} action={{ label: "Ver todo", href: "/productos" }}>
-          <Arrows />
-        </SectionHeader>
+        <SectionHeader id="categorias" title={title} align="center" />
 
-        {/* Móvil: se ven 2.3 tarjetas; la tercera cortada indica que hay más a la derecha. */}
-        <CarouselContent className="-ml-3 lg:-ml-5">
+        {/* Móvil: se ven 2.4 categorías; la tercera cortada indica que hay más a la derecha.
+            Si caben todas, se centran. */}
+        <CarouselContent className="-ml-3 lg:-ml-6 lg:justify-center">
           {categories.map((category, index) => (
             <CarouselItem
               key={category.slug}
               aria-label={`${index + 1} de ${categories.length}`}
-              className="basis-[42%] pl-3 sm:basis-1/3 md:basis-1/4 lg:basis-1/5 lg:pl-5"
+              className="basis-[42%] pl-3 sm:basis-1/3 md:basis-1/4 lg:basis-1/6 lg:pl-6"
             >
-              <Link href={category.href} className="group/cat block rounded-card">
-                <span className="relative block aspect-square overflow-hidden rounded-card bg-surface">
+              <Link href={category.href} className="group/cat block rounded-card text-center">
+                <span className="relative mx-auto block aspect-square w-full overflow-hidden rounded-full bg-surface shadow-card transition-shadow duration-300 group-hover/cat:shadow-card-hover">
                   <Image
                     src={category.imageUrl}
                     alt={category.imageAlt}
                     fill
-                    sizes="(min-width: 1024px) 20vw, (min-width: 768px) 25vw, 42vw"
+                    sizes="(min-width: 1024px) 16vw, (min-width: 768px) 25vw, 42vw"
                     className="object-cover transition-transform duration-300 group-hover/cat:scale-105"
                   />
                 </span>
-                <span className="mt-3 block font-semibold text-heading transition-colors group-hover/cat:text-brand lg:text-lg">
+                <span className="mt-4 block text-lg font-semibold text-heading transition-colors group-hover/cat:text-brand">
                   {category.name}
+                </span>
+                <span className="mt-0.5 block text-sm text-muted-foreground">
+                  {category.productCount} {category.productCount === 1 ? "producto" : "productos"}
                 </span>
               </Link>
             </CarouselItem>
           ))}
         </CarouselContent>
+
+        <Arrows />
       </Carousel>
     </section>
   );
@@ -59,11 +63,23 @@ function Arrows() {
     "grid size-tap place-items-center rounded-full border border-line text-brand transition-colors hover:bg-surface disabled:text-muted-foreground disabled:hover:bg-transparent";
 
   return (
-    <div className="ml-2 hidden gap-2 lg:flex">
-      <button type="button" onClick={scrollPrev} disabled={!canScrollPrev} aria-label="Categorías anteriores" className={arrowClass}>
+    <div className="mt-6 hidden justify-center gap-2 lg:flex">
+      <button
+        type="button"
+        onClick={scrollPrev}
+        disabled={!canScrollPrev}
+        aria-label="Categorías anteriores"
+        className={arrowClass}
+      >
         <ChevronLeftIcon className="size-5" aria-hidden="true" />
       </button>
-      <button type="button" onClick={scrollNext} disabled={!canScrollNext} aria-label="Más categorías" className={arrowClass}>
+      <button
+        type="button"
+        onClick={scrollNext}
+        disabled={!canScrollNext}
+        aria-label="Más categorías"
+        className={arrowClass}
+      >
         <ChevronRightIcon className="size-5" aria-hidden="true" />
       </button>
     </div>

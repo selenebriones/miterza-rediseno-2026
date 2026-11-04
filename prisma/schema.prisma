@@ -141,6 +141,10 @@ model Product {
   status           ProductStatus @default(DRAFT)
   isFeatured       Boolean       @default(false) // sección "Productos destacados" del home
   specs            Json? // ficha técnica: [{ "label": "Línea", "value": "Optima" }]
+  attributes       Json? // valores filtrables del catálogo: { "estilo": "Bilbao", "tono": "Gris" }
+  // Pisos: se venden por caja. `price` es el precio de la caja y el precio por m² se calcula con areaPerBox.
+  format           String? // medida de la pieza, p. ej. "22.8 cm x 1.52 m"
+  areaPerBox       Decimal?      @db.Decimal(6, 3) // m² por caja
 
   // Precio "desde" que se muestra en listados; se recalcula al guardar variantes.
   price          Decimal  @db.Decimal(10, 2)

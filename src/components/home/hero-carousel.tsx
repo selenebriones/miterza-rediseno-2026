@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { getImageProps } from "next/image";
 import { useEffect, useState } from "react";
-import { ChevronLeftIcon, ChevronRightIcon, PauseIcon, PlayIcon } from "lucide-react";
+import { PauseIcon, PlayIcon } from "lucide-react";
 import { Carousel, CarouselContent, CarouselItem, type CarouselApi } from "@/components/ui/carousel";
 import { usePrefersReducedMotion } from "@/hooks/use-prefers-reduced-motion";
 import type { HeroBanner } from "@/lib/home";
@@ -11,9 +11,8 @@ import { cn } from "@/lib/utils";
 
 const AUTOPLAY_MS = 7000;
 
-const controlClass =
-  "grid size-tap place-items-center rounded-full text-brand transition-colors hover:bg-surface active:bg-brand-50";
-
+// Hero a todo el ancho: foto con acercamiento lento, texto centrado que sube al entrar
+// y botón rectangular. Estilo tomado de la referencia (Gecko, Home Accessories).
 export function HeroCarousel({ banners }: { banners: HeroBanner[] }) {
   const [api, setApi] = useState<CarouselApi>();
   const [selected, setSelected] = useState(0);
@@ -43,7 +42,7 @@ export function HeroCarousel({ banners }: { banners: HeroBanner[] }) {
   }, [api, autoplay, interacting]);
 
   return (
-    <div className="container pt-4 lg:pt-6">
+    <section aria-label="Promociones" className="relative">
       <Carousel
         setApi={setApi}
         opts={{ loop: hasMany }}
@@ -57,20 +56,16 @@ export function HeroCarousel({ banners }: { banners: HeroBanner[] }) {
       >
         <CarouselContent className="-ml-0" aria-live={autoplay && !interacting ? "off" : "polite"}>
           {banners.map((banner, index) => (
-            <CarouselItem
-              key={banner.id}
-              aria-label={`${index + 1} de ${banners.length}`}
-              className="pl-0"
-            >
-              <Slide banner={banner} priority={index === 0} />
+            <CarouselItem key={banner.id} aria-label={`${index + 1} de ${banners.length}`} className="pl-0">
+              <Slide banner={banner} active={index === selected} priority={index === 0} />
             </CarouselItem>
           ))}
         </CarouselContent>
       </Carousel>
 
       {hasMany && (
-        <div className="mt-2 flex items-center justify-between">
-          <div className="flex items-center" role="group" aria-label="Elegir promoción">
+        <div className="pointer-events-none absolute inset-x-0 bottom-3 z-20 flex items-center justify-center lg:bottom-5">
+          <div className="pointer-events-auto flex items-center" role="group" aria-label="Elegir promoción">
             {banners.map((banner, index) => (
               <button
                 key={banner.id}
@@ -83,81 +78,82 @@ export function HeroCarousel({ banners }: { banners: HeroBanner[] }) {
                 <span
                   className={cn(
                     "block h-2 rounded-pill transition-all duration-300",
-                    index === selected ? "w-8 bg-brand" : "w-2 bg-line group-hover/dot:bg-brand/40",
+                    index === selected ? "w-8 bg-white" : "w-2 bg-white/55 group-hover/dot:bg-white/85",
                   )}
                 />
               </button>
             ))}
           </div>
 
-          <div className="flex items-center">
-            {!reducedMotion && (
-              <button
-                type="button"
-                onClick={() => setUserPaused((p) => !p)}
-                aria-label={userPaused ? "Reanudar rotación de promociones" : "Pausar rotación de promociones"}
-                className={controlClass}
-              >
-                {userPaused ? <PlayIcon className="size-5" aria-hidden="true" /> : <PauseIcon className="size-5" aria-hidden="true" />}
-              </button>
-            )}
-            <button type="button" onClick={() => api?.scrollPrev()} aria-label="Promoción anterior" className={cn(controlClass, "max-sm:hidden")}>
-              <ChevronLeftIcon className="size-5" aria-hidden="true" />
+          {!reducedMotion && (
+            <button
+              type="button"
+              onClick={() => setUserPaused((p) => !p)}
+              aria-label={userPaused ? "Reanudar rotación de promociones" : "Pausar rotación de promociones"}
+              className="pointer-events-auto absolute right-3 grid size-tap place-items-center rounded-full bg-black/25 text-white backdrop-blur-sm transition-colors hover:bg-black/45 lg:right-6"
+            >
+              {userPaused ? (
+                <PlayIcon className="size-5" aria-hidden="true" />
+              ) : (
+                <PauseIcon className="size-5" aria-hidden="true" />
+              )}
             </button>
-            <button type="button" onClick={() => api?.scrollNext()} aria-label="Promoción siguiente" className={cn(controlClass, "max-sm:hidden")}>
-              <ChevronRightIcon className="size-5" aria-hidden="true" />
-            </button>
-          </div>
+          )}
         </div>
       )}
-    </div>
+    </section>
   );
 }
 
-function Slide({ banner, priority }: { banner: HeroBanner; priority: boolean }) {
-  const dark = banner.theme === "dark";
+function Slide({ banner, active, priority }: { banner: HeroBanner; active: boolean; priority: boolean }) {
   // Imagen distinta por tamaño de pantalla: se usa fetchPriority en lugar de `preload` (recomendación de Next 16).
   const common = {
     alt: banner.imageAlt,
-    sizes: "(min-width: 1024px) 60vw, 100vw",
+    sizes: "100vw",
+    fill: true as const,
     loading: priority ? ("eager" as const) : ("lazy" as const),
     fetchPriority: priority ? ("high" as const) : undefined,
   };
   const {
     props: { srcSet: desktopSrcSet },
-  } = getImageProps({ ...common, src: banner.imageDesktop, fill: true });
+  } = getImageProps({ ...common, src: banner.imageDesktop });
   const {
     props: { srcSet: mobileSrcSet, ...imgProps },
-  } = getImageProps({ ...common, src: banner.imageMobile ?? banner.imageDesktop, fill: true });
+  } = getImageProps({ ...common, src: banner.imageMobile ?? banner.imageDesktop });
 
   return (
     <div
-      className={cn(
-        "grid h-full overflow-hidden rounded-card lg:h-[30rem] lg:grid-cols-12",
-        dark ? "bg-brand" : "bg-surface",
-      )}
+      data-active={active}
+      className="group/slide relative flex h-[30rem] items-center justify-center overflow-hidden bg-brand sm:h-[34rem] lg:h-[38rem]"
     >
-      {/* `fill`: el panel guarda solo la URL de la imagen; el tamaño lo da el contenedor. */}
-      <picture className="relative block aspect-[4/3] sm:aspect-[16/9] lg:order-2 lg:col-span-7 lg:aspect-auto lg:h-full">
+      <picture className="absolute inset-0">
         <source media="(min-width: 1024px)" srcSet={desktopSrcSet} />
         <source srcSet={mobileSrcSet} />
         {/* eslint-disable-next-line jsx-a11y/alt-text -- el alt viene en imgProps */}
-        <img {...imgProps} className="object-cover" />
+        <img {...imgProps} className="object-cover group-data-[active=true]/slide:animate-hero-zoom" />
       </picture>
+      {/* Velo para que el texto blanco se lea sobre cualquier foto. */}
+      <div aria-hidden="true" className="absolute inset-0 bg-gradient-to-b from-black/30 via-black/35 to-black/50" />
 
-      <div className="flex flex-col gap-4 p-6 sm:p-8 lg:col-span-5 lg:justify-center lg:gap-5 lg:p-12">
-        <h2 className={cn("text-[1.75rem] leading-[1.1] font-bold text-balance lg:text-[2.75rem]", dark ? "text-white" : "text-heading")}>
+      <div className="container relative z-10 flex flex-col items-center gap-4 py-12 text-center text-white lg:gap-5">
+        <h2
+          className="max-w-4xl text-[2rem] leading-[1.08] font-bold text-balance text-white opacity-0 drop-shadow-md group-data-[active=true]/slide:animate-hero-rise sm:text-5xl lg:text-[4rem]"
+          style={{ animationDelay: "150ms" }}
+        >
           {banner.title}
         </h2>
-        {banner.subtitle && <p className={cn("text-base lg:text-lg", dark ? "text-white/85" : "text-body")}>{banner.subtitle}</p>}
+        {banner.subtitle && (
+          <p
+            className="max-w-2xl text-base text-white/90 opacity-0 group-data-[active=true]/slide:animate-hero-rise lg:text-xl"
+            style={{ animationDelay: "300ms" }}
+          >
+            {banner.subtitle}
+          </p>
+        )}
         <Link
           href={banner.ctaUrl}
-          className={cn(
-            "mt-1 inline-flex h-12 items-center justify-center rounded-pill px-7 font-semibold transition-colors sm:w-fit",
-            dark
-              ? "bg-accent text-brand hover:bg-white active:bg-accent-hover"
-              : "bg-brand text-white hover:bg-accent hover:text-brand active:bg-accent-hover",
-          )}
+          className="mt-2 inline-flex h-[3.125rem] items-center justify-center rounded-[5px] bg-accent px-9 font-medium text-brand opacity-0 shadow-card-hover transition-colors group-data-[active=true]/slide:animate-hero-rise hover:bg-white active:bg-accent-hover"
+          style={{ animationDelay: "450ms" }}
         >
           {banner.ctaLabel}
         </Link>

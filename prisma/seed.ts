@@ -7,34 +7,50 @@ import "dotenv/config";
 import { PrismaPg } from "@prisma/adapter-pg";
 import { PrismaClient, type MenuLocation } from "../src/generated/prisma/client";
 import { hashPassword } from "../src/lib/password";
+import { readFileSync } from "node:fs";
 import {
   ANNOUNCEMENT,
-  BLIND_COLORS,
-  BLIND_SIZES,
-  CATEGORIES,
   HERO_BANNERS,
   HOME_SECTIONS,
+  INSTALL_VIDEOS,
   MENUS,
   PAYMENT_METHODS,
-  PHOTO_POOL,
-  persianas,
-  tapetes,
-  type ProductSeed,
+  DUMMY_DISCOUNTS,
+  DUMMY_AREA_PER_BOX,
+  DUMMY_PRICE,
+  FLOOR_CATEGORIES,
+  SECTIONS,
+  type MenuSeed,
 } from "./seed-data";
+
+// Catálogo de terza-sitio (src/data/catalogo.json, con las portadas elegidas a mano ya aplicadas).
+// Las fotos están en public/catalogo/<base>.webp.
+type TerzaCategory = { seccion: string; slug: string; nombre: string; intro: string; portada: string };
+type TerzaProduct = {
+  id: number;
+  sku: string;
+  slug: string;
+  categoria: string;
+  familia: string;
+  variante: string;
+  nuevo: boolean;
+  descripcion: string;
+  fotos: string[];
+  specs: [string, string][];
+  filtros: Record<string, string>;
+};
+const catalog: { rutaFotos: string; categorias: TerzaCategory[]; productos: TerzaProduct[] } = JSON.parse(
+  readFileSync(new URL("./data/terza-catalogo.json", import.meta.url), "utf8"),
+);
+const round2 = (n: number) => Math.round(n * 100) / 100;
+const MAX_ID = Math.max(...catalog.productos.map((p) => p.id));
+const photo = (base: string) => `${catalog.rutaFotos}/${base}.webp`;
+const MAX_PHOTOS = 4;
 
 const db = new PrismaClient({ adapter: new PrismaPg({ connectionString: process.env.DATABASE_URL }) });
 
 const DAY = 86_400_000;
 const now = Date.now();
-const round10 = (n: number) => Math.round(n / 10) * 10;
-const slugify = (text: string) =>
-  text
-    .normalize("NFD")
-    .replace(/[̀-ͯ]/g, "")
-    .toLowerCase()
-    .replace(/×/g, "x")
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/(^-|-$)/g, "");
 
 async function reset() {
   await db.$transaction([
@@ -50,26 +66,35 @@ async function reset() {
 
 async function seedCategories() {
   const ids = new Map<string, string>();
-  for (const [p, parent] of CATEGORIES.entries()) {
+  const bySlug = new Map(catalog.categorias.map((c) => [c.slug, c]));
+
+  for (const [p, section] of SECTIONS.entries()) {
+    // Una sección sin hijos es la categoría del catálogo con el mismo slug (Accesorios).
+    const own = bySlug.get(section.slug);
+    const firstChild = bySlug.get(section.children[0] ?? "");
     const created = await db.category.create({
       data: {
-        slug: parent.slug,
-        name: parent.name,
-        description: parent.description,
-        imageUrl: parent.imageUrl,
-        showInHome: parent.showInHome,
+        slug: section.slug,
+        name: section.name,
+        description: section.description || own?.intro,
+        imageUrl: photo((own ?? firstChild)!.portada),
+        imageAlt: section.name,
+        showInHome: true,
         position: p,
       },
     });
-    ids.set(parent.slug, created.id);
-    for (const [c, child] of parent.children.entries()) {
+    ids.set(section.slug, created.id);
+
+    for (const [c, slug] of section.children.entries()) {
+      const child = bySlug.get(slug)!;
       const createdChild = await db.category.create({
         data: {
           slug: child.slug,
-          name: child.name,
-          imageUrl: child.imageUrl,
-          showInHome: child.showInHome,
-          installVideoUrl: child.installVideoUrl,
+          name: child.nombre,
+          description: child.intro,
+          imageUrl: photo(child.portada),
+          imageAlt: child.nombre,
+          installVideoUrl: INSTALL_VIDEOS[child.slug] ?? null,
           position: c,
           parentId: created.id,
         },
@@ -80,121 +105,83 @@ async function seedCategories() {
   return ids;
 }
 
-async function seedProduct(seed: ProductSeed, parentSlug: "persianas" | "tapetes", index: number, categoryIds: Map<string, string>) {
-  const [name, line, basePrice, baseCompareAt, imageUrl, imageAlt, baseStock, flags] = seed;
-  const isBlind = parentSlug === "persianas";
-  const lineSlug = line.toLowerCase();
+const parentOf = (categorySlug: string) =>
+  SECTIONS.find((s) => s.children.includes(categorySlug)) ?? SECTIONS.find((s) => s.slug === categorySlug)!;
 
-  const images = imageUrl
-    ? [{ url: imageUrl, alt: imageAlt }, ...PHOTO_POOL[parentSlug].filter((img) => img.url !== imageUrl)].slice(0, 4)
-    : [];
+async function seedProduct(item: TerzaProduct, categoryIds: Map<string, string>) {
+  const category = catalog.categorias.find((c) => c.slug === item.categoria)!;
+  const section = parentOf(item.categoria);
+  // "Bilbao" + "Castle" → "Bilbao Castle"; si la variante ya trae la familia se usa tal cual.
+  const name = item.variante.toLowerCase().includes(item.familia.toLowerCase())
+    ? item.variante
+    : `${item.familia} ${item.variante}`;
 
-  const description = isBlind
-    ? [
-        `Persiana de la línea ${line} de Terza para controlar la luz y la privacidad de tus espacios.`,
-        "Elige el color y la medida más cercana a tu ventana. Si tienes dudas para medir, revisa el tutorial de instalación o llámanos.",
-      ]
-    : [
-        `Tapete de la línea ${line} de Terza para dar textura y calidez a tus espacios.`,
-        "Revisa la medida antes de comprar y compárala con el espacio donde lo vas a colocar.",
-      ];
+  // Precio dummy de $1,000. Una oferta de ejemplo cada ~12 productos: $1,000 tachado y el descuento
+  // calculado sobre esa base (10, 15 o 20 %).
+  const onSale = item.id % 12 === 0;
+  const discount = DUMMY_DISCOUNTS[Math.floor(item.id / 12) % DUMMY_DISCOUNTS.length];
+  const unitPrice = onSale ? DUMMY_PRICE * (1 - discount / 100) : DUMMY_PRICE;
 
-  const specs = isBlind
-    ? [
-        { label: "Categoría", value: "Persianas" },
-        { label: "Línea", value: line },
-        { label: "Colores", value: BLIND_COLORS.map((c) => c.value).join(", ") },
-        { label: "Medidas (ancho × alto)", value: BLIND_SIZES.map((s) => s.value).join(" · ") },
-      ]
-    : [
-        { label: "Categoría", value: "Tapetes" },
-        { label: "Línea", value: line },
-        { label: "Medida", value: name.match(/\d+ × \d+ cm/)?.[0] ?? "—" },
-      ];
+  // Pisos: se venden por caja. El precio dummy es por m² y la caja cuesta precio × m² por caja.
+  const isFloor = FLOOR_CATEGORIES.includes(item.categoria);
+  const spec = (label: string) => item.specs.find(([l]) => l === label)?.[1];
+  const areaPerBox = isFloor ? Number(spec("m² por caja") ?? DUMMY_AREA_PER_BOX) : null;
+  const length = spec("Largo") ?? spec("Longitud");
+  const format = isFloor
+    ? (spec("Medidas") ?? (spec("Ancho") && length ? `${spec("Ancho")} x ${length}` : null))
+    : null;
+  const price = round2(unitPrice * (areaPerBox ?? 1));
+  const compareAtPrice = onSale ? round2(DUMMY_PRICE * (areaPerBox ?? 1)) : null;
+  // Existencias de prueba: algunas agotadas y algunas bajas.
+  const stock = item.id % 19 === 0 ? 0 : item.id % 7 === 0 ? 3 : 10 + (item.id % 40);
 
-  // "Nuevo" se calcula con publishedAt (últimos 30 días): los marcados como nuevos se publican hace pocos días.
-  const publishedAt = new Date(flags?.isNew ? now - (2 + (index % 5)) * DAY : now - (45 + index * 4) * DAY);
+  // "Nuevo" se calcula con publishedAt (últimos 30 días). El resto se ordena por alta en terza.com
+  // (el id más alto es el más reciente), igual que en terza-sitio.
+  const publishedAt = new Date(
+    item.nuevo ? now - (1 + (item.id % 20)) * DAY : now - (40 + Math.round((MAX_ID - item.id) / 5)) * DAY,
+  );
 
-  const product = await db.product.create({
+  const parentIds = section.slug === item.categoria ? [] : [{ id: categoryIds.get(section.slug)! }];
+
+  await db.product.create({
     data: {
       name,
-      slug: slugify(name),
+      slug: item.slug,
+      brand: "Terza",
       status: "ACTIVE",
-      isFeatured: flags?.isFeatured ?? false,
-      price: basePrice,
-      compareAtPrice: baseCompareAt,
-      description: description.join("\n\n"),
-      specs,
+      isFeatured: item.nuevo,
+      price,
+      compareAtPrice,
+      format,
+      areaPerBox,
+      attributes: item.filtros,
+      shortDescription: category.intro,
+      description: item.descripcion || category.intro,
+      // La colección se agrega solo si la ficha de terza-sitio no la trae ya.
+      specs: [
+        ...(item.specs.some(([label]) => label === "Colección") ? [] : [{ label: "Colección", value: item.familia }]),
+        ...item.specs.map(([label, value]) => ({ label, value })),
+      ],
       publishedAt,
-      categories: { connect: [{ id: categoryIds.get(lineSlug)! }, { id: categoryIds.get(parentSlug)! }] },
-      images: { create: images.map((img, position) => ({ ...img, position })) },
-      options: isBlind
-        ? {
-            create: [
-              {
-                name: "Color",
-                position: 0,
-                values: { create: BLIND_COLORS.map((c, position) => ({ value: c.value, swatch: c.swatch, position })) },
-              },
-              {
-                name: "Medida",
-                position: 1,
-                values: { create: BLIND_SIZES.map((s, position) => ({ value: s.value, position })) },
-              },
-            ],
-          }
-        : undefined,
-    },
-    include: { options: { include: { values: true } } },
-  });
-
-  const sku = `TZ-${index.toString().padStart(3, "0")}`;
-
-  if (!isBlind) {
-    await db.productVariant.create({
-      data: {
-        productId: product.id,
-        sku,
-        price: basePrice,
-        compareAtPrice: baseCompareAt,
-        stock: baseStock,
-        isDefault: true,
+      categories: { connect: [{ id: categoryIds.get(item.categoria)! }, ...parentIds] },
+      images: {
+        create: item.fotos.slice(0, MAX_PHOTOS).map((base, position) => ({
+          url: photo(base),
+          alt: position === 0 ? `${category.nombre}: ${name}` : `${name}, foto ${position + 1}`,
+          position,
+        })),
       },
-    });
-    return;
-  }
-
-  const colorValues = product.options.find((o) => o.name === "Color")!.values;
-  const sizeValues = product.options.find((o) => o.name === "Medida")!.values;
-  let position = 0;
-  for (const [c, color] of BLIND_COLORS.entries()) {
-    for (const [s, size] of BLIND_SIZES.entries()) {
-      // Existencias repartidas para tener combinaciones disponibles, bajas y agotadas.
-      const stock = baseStock === 0 ? 0 : (index * 7 + c * 5 + s * 3) % 13 === 0 ? 0 : ((index + c * 3 + s * 2) % 9) + 1;
-      await db.productVariant.create({
-        data: {
-          productId: product.id,
-          sku: `${sku}-${c}${s}`,
-          price: round10(basePrice * size.factor),
-          compareAtPrice: baseCompareAt ? round10(baseCompareAt * size.factor) : null,
-          stock,
-          isDefault: position === 0,
-          position: position++,
-          optionValues: {
-            create: [
-              { optionValueId: colorValues.find((v) => v.value === color.value)!.id },
-              { optionValueId: sizeValues.find((v) => v.value === size.value)!.id },
-            ],
-          },
-        },
-      });
-    }
-  }
+      variants: { create: { sku: item.sku, price, compareAtPrice, stock, isDefault: true } },
+    },
+  });
 }
 
-type MenuSeed = (typeof MENUS)[number]["items"][number];
-
-async function seedMenuItems(menuId: string, items: MenuSeed[], categoryIds: Map<string, string>, parentId: string | null) {
+async function seedMenuItems(
+  menuId: string,
+  items: MenuSeed[],
+  categoryIds: Map<string, string>,
+  parentId: string | null,
+) {
   for (const [position, item] of items.entries()) {
     const created = await db.menuItem.create({
       data: {
@@ -216,12 +203,29 @@ async function main() {
   await reset();
   const categoryIds = await seedCategories();
 
-  for (const [i, seed] of persianas.entries()) await seedProduct(seed, "persianas", i, categoryIds);
-  for (const [i, seed] of tapetes.entries()) await seedProduct(seed, "tapetes", persianas.length + i, categoryIds);
+  // En tandas para no abrir una conexión por producto.
+  for (let i = 0; i < catalog.productos.length; i += 20) {
+    await Promise.all(catalog.productos.slice(i, i + 20).map((item) => seedProduct(item, categoryIds)));
+  }
 
   for (const menu of MENUS) {
     const created = await db.menu.create({ data: { name: menu.name, location: menu.location as MenuLocation } });
-    await seedMenuItems(created.id, menu.items, categoryIds, null);
+    // El menú principal: una entrada por sección con sus categorías, antes de los enlaces fijos.
+    const items: MenuSeed[] =
+      menu.location === "HEADER_MAIN"
+        ? [
+            ...SECTIONS.map((section) => ({
+              label: section.name,
+              category: section.slug,
+              children: section.children.map((slug) => ({
+                label: catalog.categorias.find((c) => c.slug === slug)!.nombre,
+                category: slug,
+              })),
+            })),
+            ...menu.items,
+          ]
+        : menu.items;
+    await seedMenuItems(created.id, items, categoryIds, null);
   }
 
   await db.banner.createMany({
@@ -248,8 +252,15 @@ async function main() {
 
   await seedAdmin();
 
-  const counts = await Promise.all([db.category.count(), db.product.count(), db.productVariant.count(), db.menuItem.count()]);
-  console.log(`Seed listo: ${counts[0]} categorías, ${counts[1]} productos, ${counts[2]} variantes, ${counts[3]} elementos de menú.`);
+  const counts = await Promise.all([
+    db.category.count(),
+    db.product.count(),
+    db.productVariant.count(),
+    db.menuItem.count(),
+  ]);
+  console.log(
+    `Seed listo: ${counts[0]} categorías, ${counts[1]} productos, ${counts[2]} variantes, ${counts[3]} elementos de menú.`,
+  );
 }
 
 // Administrador inicial desde ADMIN_EMAIL / ADMIN_PASSWORD. Si ya existe, solo asegura su rol
@@ -267,7 +278,12 @@ async function seedAdmin() {
     await db.user.update({ where: { email }, data: access });
   } else {
     await db.user.create({
-      data: { email, name: process.env.ADMIN_NAME ?? "Administrador", passwordHash: await hashPassword(password), ...access },
+      data: {
+        email,
+        name: process.env.ADMIN_NAME ?? "Administrador",
+        passwordHash: await hashPassword(password),
+        ...access,
+      },
     });
   }
   console.log(`Administrador listo: ${email}`);
