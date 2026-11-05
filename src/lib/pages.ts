@@ -12,6 +12,15 @@ export type PolicyPage = {
   updatedAt: Date;
 };
 
+export async function getPolicySlugs(): Promise<string[]> {
+  "use cache";
+  cacheLife("hours");
+  cacheTag(CACHE_TAGS.content);
+
+  const pages = await db.page.findMany({ where: { type: "POLICY", isPublished: true }, select: { slug: true } });
+  return pages.map((p) => p.slug);
+}
+
 export async function getPolicy(slug: string): Promise<PolicyPage | null> {
   "use cache";
   cacheLife("hours");

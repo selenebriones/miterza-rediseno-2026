@@ -1,10 +1,16 @@
 import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { Suspense } from "react";
-import { getPolicy } from "@/lib/pages";
+import { getPolicy, getPolicySlugs } from "@/lib/pages";
+import seededPolicies from "../../../../../prisma/data/politicas.json";
 
-// Sin generateStaticParams: con Cache Components una lista vacía (base sin políticas aún) rompe
-// el build. La página se resuelve al pedirla, dentro de <Suspense>, y getPolicy tiene caché.
+// Con Cache Components la lista no puede ir vacía (sin parámetros conocidos, el header que lee la
+// ruta rompe el prerender). Por eso se suman las políticas del seed a las de la base: si alguna
+// todavía no está cargada, queda como 404 hasta el siguiente despliegue.
+export async function generateStaticParams() {
+  const slugs = new Set([...seededPolicies.map((p) => p.slug), ...(await getPolicySlugs())]);
+  return [...slugs].map((slug) => ({ slug }));
+}
 
 export async function generateMetadata({ params }: PageProps<"/politicas/[slug]">): Promise<Metadata> {
   const page = await getPolicy((await params).slug);
