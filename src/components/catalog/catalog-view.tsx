@@ -14,7 +14,7 @@ import { SortSelect } from "./sort-select";
 // Título, descripción y migas según cómo llegó el usuario (categoría, búsqueda u ofertas).
 export function describeCatalog(filters: CatalogFilters, tree: CategoryNode[]) {
   const category = filters.categories.length === 1 ? findCategory(tree, filters.categories[0]) : null;
-  if (filters.q) return { title: `Resultados para «${filters.q}»`, description: null, category: null };
+  if (filters.q) return { title: `Resultados para “${filters.q}”`, description: null, category: null };
   if (category) {
     return {
       // Las subcategorías ya traen su nombre completo ("Pisos vinílicos", "Alfombras").
@@ -115,7 +115,7 @@ function EmptyState({ filters, tree }: { filters: CatalogFilters; tree: Category
     <div className="flex flex-col items-center rounded-card bg-surface px-6 py-12 text-center">
       <SearchXIcon className="size-10 text-brand" aria-hidden="true" />
       <h2 className="mt-3 text-xl font-bold">
-        {filters.q ? `No encontramos productos para «${filters.q}»` : "No encontramos productos con estos filtros"}
+        {filters.q ? `No encontramos productos para “${filters.q}”` : "No encontramos productos con estos filtros"}
       </h2>
       <p className="mt-2 max-w-md">
         {filters.q

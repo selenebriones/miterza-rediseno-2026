@@ -45,8 +45,8 @@ export async function searchCatalog(query: string): Promise<SearchResults> {
   };
 }
 
-// Sugerencias antes de escribir: las primeras categorías destacadas del home.
+// "Búsquedas populares" antes de escribir: las primeras categorías del home.
 export async function getPopularCategories(): Promise<SearchCategory[]> {
   const categories = await getHomeCategories();
-  return categories.slice(0, 3).map(({ slug, name, href }) => ({ slug, name, href }));
+  return categories.slice(0, 6).map(({ slug, name, href }) => ({ slug, name, href }));
 }

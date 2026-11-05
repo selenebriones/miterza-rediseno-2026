@@ -27,7 +27,7 @@ export function ActiveFilters({ className }: { className?: string }) {
   const { filters, navigate, tree } = useCatalog();
 
   const chips: Chip[] = [
-    ...(filters.q ? [{ key: "q", label: `«${filters.q}»`, remove: { q: "" } }] : []),
+    ...(filters.q ? [{ key: "q", label: `“${filters.q}”`, remove: { q: "" } }] : []),
     ...filters.categories.map((slug) => ({
       key: `cat-${slug}`,
       label: findCategory(tree, slug)?.name ?? slug,

@@ -34,6 +34,7 @@ const config: Config = {
           DEFAULT: "#00514a",
           hover: "#00413b",
           active: "#003530",
+          dark: "#023c37", // fondo de la capa de búsqueda (igual que terza-sitio)
           50: "#e6eeed",
           100: "#cce0de",
         },
@@ -48,6 +49,7 @@ const config: Config = {
         cream: "#f9f8f5", // fondo del footer (igual que terza-sitio)
         mist: "#f3f4ee", // fondo de secciones secundarias (relacionados)
         heading: "#000000",
+        ink: "#15211f", // texto sobre lima en la búsqueda (terza-sitio)
         body: "#555555",
         // `muted` / `muted-foreground` (#767676, 4.54:1) los define globals.css para shadcn.
         line: "#e2e8df", // bordes y separadores

@@ -64,7 +64,7 @@ export async function updateOrderStatus(_prev: StatusFormState, formData: FormDa
         const current = await tx.order.findUnique({ where: { id: orderId }, select: { status: true } });
         throw new StatusChangeError(
           current
-            ? `Este pedido cambió a «${STATUS_META[current.status].label}» mientras tanto. Recarga para ver su estado actual.`
+            ? `Este pedido cambió a “${STATUS_META[current.status].label}” mientras tanto. Recarga para ver su estado actual.`
             : "No encontramos este pedido.",
         );
       }
@@ -95,5 +95,5 @@ export async function updateOrderStatus(_prev: StatusFormState, formData: FormDa
 
   if (next === "CANCELLED") revalidateTag(CACHE_TAGS.catalog, "max"); // cambió el inventario
   refresh(); // vuelve a pintar el detalle con el nuevo estado e historial
-  return { status: "success", message: `Pedido actualizado a «${STATUS_META[next as OrderStatus].label}».` };
+  return { status: "success", message: `Pedido actualizado a “${STATUS_META[next as OrderStatus].label}”.` };
 }

@@ -119,7 +119,7 @@ async function Orders({ searchParams }: Pick<PageProps<"/admin/pedidos">, "searc
 
       <p aria-live="polite" className="text-sm">
         {result.total} {result.total === 1 ? "pedido" : "pedidos"}
-        {filters.q && <> que coinciden con «{filters.q}»</>}
+        {filters.q && <> que coinciden con “{filters.q}”</>}
       </p>
 
       {result.orders.length === 0 ? (

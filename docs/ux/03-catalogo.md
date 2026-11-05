@@ -9,7 +9,7 @@ La misma página atiende tres entradas:
 | Llega desde | URL | Título (H1) |
 |---|---|---|
 | Menú o categoría del home | `/productos?categoria=persianas` | Persianas |
-| Buscador | `/productos?q=blackout` | Resultados para «blackout» |
+| Buscador | `/productos?q=blackout` | Resultados para “blackout” |
 | "Ver todo" / "Ofertas" | `/productos`, `/productos?ofertas=1` | Todos los productos / Ofertas |
 
 ## Estado en la URL

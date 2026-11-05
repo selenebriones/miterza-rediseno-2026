@@ -1,0 +1,48 @@
+[
+  {
+    "name": "Persianas",
+    "slug": "persianas",
+    "items": [
+      {
+        "question": "¿Qué tipos de persianas ofrecen?",
+        "answer": "Ofrecemos una variedad de persianas, incluyendo persianas Enrollables Blackout, Enrollables Screen, Enrollables Light Filtering, Stylo Light Filtering y Stylo Room Darkening. Cada tipo tiene diferentes opciones de diseño y funcionalidad."
+      },
+      {
+        "question": "¿Cómo puedo medir mis ventanas para comprar persianas?",
+        "answer": "Proporcionamos una guía de medición en nuestra página o sigue nuestro tutorial en nuestro [canal de YouTube](https://www.youtube.com/channel/UCnIDmz5VV5tsZ7pMiOvwa1A). Asegúrate de medir el ancho y la altura del marco de la ventana y seguir nuestras instrucciones para obtener el tamaño correcto."
+      },
+      {
+        "question": "¿Puedo personalizar mis persianas?",
+        "answer": "Sí, ofrecemos opciones de personalización para que elijas colores, materiales y tamaños que se adapten a tu estilo y necesidades."
+      },
+      {
+        "question": "¿Las persianas son fáciles de instalar?",
+        "answer": "Sí, nuestras persianas vienen con instrucciones de instalación claras y sencillas. También ofrecemos tutoriales en video en nuestro [canal de YouTube](https://www.youtube.com/channel/UCnIDmz5VV5tsZ7pMiOvwa1A) para ayudarte en el proceso."
+      },
+      {
+        "question": "¿Cómo se limpian y mantienen las persianas?",
+        "answer": "Recomendamos limpiar las persianas con un paño húmedo y, en algunos casos, usar una aspiradora con un accesorio suave. Consulta las instrucciones específicas de mantenimiento que vienen con cada tipo de persiana."
+      },
+      {
+        "question": "¿Qué garantía ofrecen para las persianas?",
+        "answer": "Todas nuestras persianas vienen con garantía:\n\n- Stylo: 2 años de garantía\n- Optima: 2 años de garantía\n- Select: 5 años de garantía\n\nEsto cubre defectos de fabricación y te asegura la calidad de nuestros productos."
+      },
+      {
+        "question": "¿Puedo devolver mis persianas si no estoy satisfecho?",
+        "answer": "Sí, ofrecemos una política de devoluciones; puedes [consultarla aquí](/politicas/devoluciones)."
+      },
+      {
+        "question": "¿Las persianas ofrecen control de luz y privacidad?",
+        "answer": "Sí, nuestras persianas están diseñadas para ofrecer control sobre la luz y la privacidad. Dependiendo del modelo, puedes ajustar la cantidad de luz que entra en tu espacio."
+      },
+      {
+        "question": "¿Pueden mis persianas ayudar a reducir el consumo de energía?",
+        "answer": "Absolutamente. Nuestras persianas están diseñadas para proporcionar aislamiento, ayudando a mantener la temperatura de tu hogar y a reducir el uso de energía."
+      },
+      {
+        "question": "¿Ofrecen envío internacional?",
+        "answer": "Actualmente, ofrecemos envío únicamente en México."
+      }
+    ]
+  }
+]

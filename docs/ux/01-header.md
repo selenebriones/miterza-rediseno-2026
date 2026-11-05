@@ -68,7 +68,7 @@ Prioridad de elementos (de más a menos visible):
 - `type="search"`, `enterkeyhint="search"`, fuente de 16 px (si es menor, iOS hace zoom solo).
 - Antes de escribir: búsquedas recientes y categorías populares.
 - Desde 2 caracteres, con 250 ms de espera: hasta 5 productos con miniatura y precio, y 3 categorías.
-- Sin resultados: "No encontramos «xyz»", sugerencias y un enlace a todo el catálogo. Nunca una pantalla vacía.
+- Sin resultados: "No encontramos “xyz”", sugerencias y un enlace a todo el catálogo. Nunca una pantalla vacía.
 
 ---
 
@@ -164,7 +164,7 @@ Código en `src/components/header/` y `src/components/cart/`. Ajustes respecto a
 Se reemplazó el header verde con buscador al centro por el de `terza-sitio`:
 
 - **Una sola barra blanca** con borde inferior: logo a color a la izquierda, menú con flechas (Persianas, Tapetes, Ofertas) y, a la derecha, botón de búsqueda circular en lima claro (`#d5fe7d`), favoritos (círculo con borde y contador), **"Mi cuenta"** en píldora verde oscuro y **"Carrito"** en píldora lima con contador.
-- **Búsqueda:** el botón circular abre un panel que baja desde arriba (centrado en desktop, a pantalla completa en móvil) con las mismas sugerencias de productos y categorías.
+- **Búsqueda (2026-11-05, igual que terza-sitio):** el botón circular abre una capa a pantalla completa en verde oscuro translúcido (`#023c37` al 95 % con desenfoque), en móvil y desktop. Supratítulo lima "¿Qué estás buscando?", campo en píldora con borde blanco (lima al enfocar) y botón lima con lupa; antes de escribir, "Búsquedas recientes" y "Búsquedas populares" (6 categorías) en píldoras que llenan el campo. Resultados en blanco, grandes y separados por líneas (categorías, luego productos con miniatura), con flecha; el marcado con teclado se pone en lima. Esc borra el texto y un segundo Esc cierra; clic en el fondo también cierra.
 - **Móvil:** menú ☰, logo, búsqueda y carrito (círculos de 44 px). Se quitó la barra de búsqueda verde que había debajo.
 - **Mega menú:** se conserva; ahora se abre justo debajo de la barra y la línea lima de énfasis queda en el borde inferior del header.
 - **Contraste:** el texto de la píldora lima es verde oscuro (en terza.com es blanco, pero blanco sobre `#bcdc00` da 1.57:1).

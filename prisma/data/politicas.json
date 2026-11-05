@@ -1,0 +1,26 @@
+[
+  {
+    "slug": "privacidad",
+    "title": "Aviso de privacidad",
+    "seoDescription": "Cómo TERZA, S.A. de C.V. usa y protege tus datos personales, con quién los comparte y cómo ejercer tus derechos ARCO.",
+    "file": "politicas/privacidad.html"
+  },
+  {
+    "slug": "devoluciones",
+    "title": "Política de devoluciones",
+    "seoDescription": "Cuándo puedes devolver un producto Terza, cómo reportarlo en las primeras 72 horas y cómo enviarlo sin costo con Paquete Express.",
+    "file": "politicas/devoluciones.html"
+  },
+  {
+    "slug": "cancelacion",
+    "title": "Política de cancelación",
+    "seoDescription": "Los pedidos de Mi Terza no se pueden cancelar una vez pagados y confirmados; si el producto no cumple lo acordado, aplica la política de devoluciones.",
+    "file": "politicas/cancelacion.html"
+  },
+  {
+    "slug": "cookies",
+    "title": "Política de cookies",
+    "seoDescription": "Qué cookies usa Terza, para qué sirven y cómo controlarlas o eliminarlas desde tu navegador.",
+    "file": "politicas/cookies.html"
+  }
+]

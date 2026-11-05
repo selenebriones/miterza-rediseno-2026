@@ -62,6 +62,8 @@ async function reset() {
     db.category.deleteMany(),
     db.banner.deleteMany(),
     db.homeSection.deleteMany(),
+    db.faqItem.deleteMany(),
+    db.faqCategory.deleteMany(),
   ]);
 }
 
@@ -248,6 +250,31 @@ async function main() {
       position,
     })),
   });
+
+  // Preguntas frecuentes (prisma/data/faq.json, texto del cliente). Las respuestas admiten
+  // párrafos, listas con "- " y enlaces [texto](url).
+  const faq: { name: string; slug: string; items: { question: string; answer: string }[] }[] = JSON.parse(
+    readFileSync(new URL("./data/faq.json", import.meta.url), "utf8"),
+  );
+  for (const [position, category] of faq.entries()) {
+    await db.faqCategory.create({
+      data: {
+        name: category.name,
+        slug: category.slug,
+        position,
+        items: { create: category.items.map((item, i) => ({ ...item, position: i })) },
+      },
+    });
+  }
+
+  // Políticas (/politicas/[slug]): HTML del cliente en prisma/data/politicas/.
+  const policies: { slug: string; title: string; seoDescription: string; file: string }[] = JSON.parse(
+    readFileSync(new URL("./data/politicas.json", import.meta.url), "utf8"),
+  );
+  for (const { file, ...page } of policies) {
+    const data = { ...page, type: "POLICY" as const, content: readFileSync(new URL(`./data/${file}`, import.meta.url), "utf8").trim() };
+    await db.page.upsert({ where: { slug: page.slug }, update: data, create: data });
+  }
 
   for (const [position, method] of PAYMENT_METHODS.entries()) {
     const data = { ...method, position };
