@@ -16,16 +16,19 @@ export function CategoryCarousel({ title, categories }: Props) {
   return (
     <section aria-labelledby="categorias" className="container py-12 lg:py-16">
       <Carousel opts={{ align: "start", containScroll: "trimSnaps" }} aria-label={title}>
-        <SectionHeader id="categorias" title={title} align="center" />
+        {/* Título a la izquierda y flechas a la derecha, como en "Nuevos productos". */}
+        <SectionHeader id="categorias" title={title}>
+          <Arrows />
+        </SectionHeader>
 
-        {/* Móvil: se ven 2.4 categorías; la tercera cortada indica que hay más a la derecha.
-            Si caben todas, se centran. */}
-        <CarouselContent className="-ml-3 lg:-ml-6 lg:justify-center">
+        {/* Círculos chicos en slider: 3.5 en móvil, 5 en tablet y 8 en desktop. La categoría cortada
+            indica que hay más a la derecha. */}
+        <CarouselContent className="-ml-3 lg:-ml-5">
           {categories.map((category, index) => (
             <CarouselItem
               key={category.slug}
               aria-label={`${index + 1} de ${categories.length}`}
-              className="basis-[42%] pl-3 sm:basis-1/3 md:basis-1/4 lg:basis-1/6 lg:pl-6"
+              className="basis-[28%] pl-3 sm:basis-1/5 md:basis-1/6 lg:basis-[12.5%] lg:pl-5"
             >
               <Link href={category.href} className="group/cat block rounded-card text-center">
                 <span className="relative mx-auto block aspect-square w-full overflow-hidden rounded-full bg-surface shadow-card transition-shadow duration-300 group-hover/cat:shadow-card-hover">
@@ -33,22 +36,20 @@ export function CategoryCarousel({ title, categories }: Props) {
                     src={category.imageUrl}
                     alt={category.imageAlt}
                     fill
-                    sizes="(min-width: 1024px) 16vw, (min-width: 768px) 25vw, 42vw"
+                    sizes="(min-width: 1024px) 12vw, (min-width: 768px) 16vw, 28vw"
                     className="object-cover transition-transform duration-300 group-hover/cat:scale-105"
                   />
                 </span>
-                <span className="mt-4 block text-lg font-semibold text-heading transition-colors group-hover/cat:text-brand">
+                <span className="mt-3 block text-sm leading-snug font-semibold text-heading transition-colors group-hover/cat:text-brand lg:text-base">
                   {category.name}
                 </span>
-                <span className="mt-0.5 block text-sm text-muted-foreground">
+                <span className="mt-0.5 block text-xs text-muted-foreground lg:text-sm">
                   {category.productCount} {category.productCount === 1 ? "producto" : "productos"}
                 </span>
               </Link>
             </CarouselItem>
           ))}
         </CarouselContent>
-
-        <Arrows />
       </Carousel>
     </section>
   );
@@ -63,7 +64,7 @@ function Arrows() {
     "grid size-tap place-items-center rounded-full border border-line text-brand transition-colors hover:bg-surface disabled:text-muted-foreground disabled:hover:bg-transparent";
 
   return (
-    <div className="mt-6 hidden justify-center gap-2 lg:flex">
+    <div className="hidden gap-2 lg:flex">
       <button
         type="button"
         onClick={scrollPrev}

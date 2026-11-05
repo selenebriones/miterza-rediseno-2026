@@ -3,11 +3,6 @@
 // prisma/data/terza-catalogo.json. Todos los precios son un dummy de $1,000 (DUMMY_PRICE); las existencias son de prueba.
 // Textos institucionales y tutoriales vienen de miterza.com.
 
-const img = {
-  optima: "/home/tutorial-optima.webp",
-  stylo: "/home/tutorial-stylo.webp",
-};
-
 // Árbol de categorías de la tienda. Cada sección del menú agrupa categorías del catálogo de terza-sitio
 // (prisma/data/terza-catalogo.json); Accesorios es una sola categoría. Igual que el menú de terza-sitio,
 // las alfombras van dentro de Pisos.
@@ -81,6 +76,35 @@ export const HERO_BANNERS = [
   },
 ];
 
+// "Nuestras promociones" (Banner HOME_PROMO), en orden: el grande, los dos chicos y el ancho. Cada uno
+// enlaza a un producto (/productos/<slug>) o a una categoría; el % de ahorro se calcula de sus ofertas.
+export const PROMO_BANNERS = [
+  {
+    title: "Pisos de madera",
+    ctaUrl: "/productos?categoria=pisos-de-madera&ofertas=1",
+    imageDesktop: "/catalogo/t36-34592-200207-b.webp",
+    imageAlt: "Sala amplia con piso de madera y ventanal",
+  },
+  {
+    title: "Lambrín y paneles",
+    ctaUrl: "/productos?categoria=paneles&ofertas=1",
+    imageDesktop: "/catalogo/t15-pvcms-063y9-mineral-gray.webp",
+    imageAlt: "Sala con panel de mármol y lambrín de madera",
+  },
+  {
+    title: "Flexiroc Caliza Blanca",
+    ctaUrl: "/productos/t15-fr026-tgg107",
+    imageDesktop: "/catalogo/t15-fr026-pt205-2.webp",
+    imageAlt: "Muro recubierto con piedra flexible en una sala",
+  },
+  {
+    title: "Persianas",
+    ctaUrl: "/productos?categoria=persianas&ofertas=1",
+    imageDesktop: "/home/promo-persianas.webp",
+    imageAlt: "Persona ajustando una persiana enrollable en una ventana",
+  },
+];
+
 // confirmar con el cliente: monto de envío gratis
 export const ANNOUNCEMENT = {
   title: "Envío gratis en compras desde $999",
@@ -111,18 +135,32 @@ export const HOME_SECTIONS = [
       ],
     },
   },
-  { type: "CATEGORY_CAROUSEL", title: "Categoría", subtitle: null, settings: null },
+  { type: "CATEGORY_CAROUSEL", title: "Compra por categoría", subtitle: null, settings: null },
   { type: "FEATURED_PRODUCTS", title: "Nuevos productos", subtitle: null, settings: { limit: 12 } },
+  { type: "PROMO_BANNERS", title: "Ofertas y promociones", subtitle: null, settings: null },
   {
     type: "INSTALL_GUIDE",
     title: "Mide e instala tus persianas paso a paso",
     subtitle: "Te mostramos cómo tomar medidas y colocarlas tú mismo, sin herramientas especiales.",
+    // Banda de ayuda: guía a la izquierda (lima) y preguntas frecuentes a la derecha (blanco).
     settings: {
       eyebrow: "Guías | Instalación",
+      imageUrl: "/home/hero-persianas.webp",
+      imageAlt: "Hombre trabajando junto a una ventana con persiana enrollable",
       tutorials: [
-        { title: "Persianas enrollables", lines: "Optima y Select", videoUrl: OPTIMA_VIDEO, imageUrl: img.optima },
-        { title: "Persianas de doble tela", lines: "Stylo", videoUrl: STYLO_VIDEO, imageUrl: img.stylo },
+        { title: "Persianas enrollables", lines: "Líneas Optima y Select", videoUrl: OPTIMA_VIDEO },
+        { title: "Persianas de doble tela", lines: "Línea Stylo", videoUrl: STYLO_VIDEO },
       ],
+      faq: {
+        eyebrow: "Preguntas frecuentes",
+        title: "Resolvemos tus",
+        highlight: "dudas.",
+        text: "Medidas, envíos, formas de pago, instalación y garantías: encuentra respuestas rápidas antes de hacer tu pedido.",
+        ctaLabel: "Ver preguntas frecuentes",
+        ctaUrl: "/preguntas-frecuentes",
+        imageUrl: "/catalogo/t06-40101-00013-b.webp",
+        imageAlt: "Sala con piso de madera, sofá y ventanal",
+      },
     },
   },
 ] as const;

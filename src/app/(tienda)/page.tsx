@@ -2,9 +2,10 @@ import type { Metadata } from "next";
 import { CategoryCarousel } from "@/components/home/category-carousel";
 import { FeaturedProducts } from "@/components/home/featured-products";
 import { HeroCarousel } from "@/components/home/hero-carousel";
-import { InstallGuide } from "@/components/home/install-guide";
+import { HelpBand } from "@/components/home/help-band";
+import { PromoBanners } from "@/components/home/promo-banners";
 import { ValueProposition } from "@/components/home/value-proposition";
-import { getHeroBanners, getHomeCategories, getHomeSections, type HomeSection } from "@/lib/home";
+import { getHeroBanners, getHomeCategories, getHomeSections, getPromoBanners, type HomeSection } from "@/lib/home";
 import { getFeaturedProducts } from "@/lib/products";
 
 export const metadata: Metadata = {
@@ -16,10 +17,11 @@ export const metadata: Metadata = {
 export default async function HomePage() {
   const sections = await getHomeSections();
   const featuredLimit = sections.find((s) => s.type === "FEATURED_PRODUCTS")?.limit ?? 12;
-  const [banners, categories, featured] = await Promise.all([
+  const [banners, categories, featured, promos] = await Promise.all([
     getHeroBanners(),
     getHomeCategories(),
     getFeaturedProducts(featuredLimit),
+    getPromoBanners(),
   ]);
 
   // El orden y la visibilidad de cada bloque se administran desde el panel (HomeSection).
@@ -38,18 +40,13 @@ export default async function HomePage() {
           <FeaturedProducts title={section.title ?? "Destacados"} subtitle={section.subtitle} products={featured} />
         );
       case "INSTALL_GUIDE":
+        return section.help && <HelpBand content={section.help} />;
+      case "PROMO_BANNERS":
         return (
-          section.tutorials.length > 0 && (
-            <InstallGuide
-              title={section.title ?? "Guía de instalación"}
-              subtitle={section.subtitle}
-              eyebrow={section.eyebrow}
-              tutorials={section.tutorials}
-            />
-          )
+          <PromoBanners title={section.title ?? "Ofertas y promociones"} subtitle={section.subtitle} banners={promos} />
         );
       default:
-        return null; // PROMO_BANNERS aún no tiene diseño
+        return null;
     }
   }
 

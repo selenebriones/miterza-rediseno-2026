@@ -223,3 +223,11 @@ Botón circular con ícono de calculadora arriba a la derecha del precio, solo e
 - Resultado fijo al pie: cajas sugeridas = ⌈superficie (+10 %) ÷ m² por caja⌉, costo total, superficie y m² que cubren las cajas. Si las cajas superan las existencias, avisa y ofrece solo las disponibles.
 - "Agregar N cajas al carrito" ajusta la cantidad y agrega al carrito.
 - Tope por producto en el carrito subido de 10 a 99 (`MAX_PER_LINE`): con 10 cajas solo se cubrían ~20 m².
+
+### "Nuestras promociones" (2026-11-04)
+
+Sección `PROMO_BANNERS` con banners `HOME_PROMO` (título, imagen, enlace a un producto `/productos/<slug>` o a una categoría `/productos?categoria=<slug>&ofertas=1`). Desktop: el primero grande a la izquierda; a la derecha, arriba dos cuadros y abajo uno ancho (como la referencia). Móvil: grande, dos lado a lado y ancho. Con menos de 4 banners, cuadrícula simple.
+
+- Círculo naranja (`bg-sale`) "HASTA N% DE AHORRO": **no se captura**, se calcula con las ofertas vigentes del destino (mayor descuento de la categoría, o el del producto sin "Hasta"). Si el destino no tiene ofertas, no aparece.
+- Etiqueta en mayúsculas abajo a la derecha sobre un degradado; zoom suave de la foto al pasar el cursor.
+- Se programan con `startsAt`/`endsAt` y se ordenan con `position`. Falta la pantalla del panel para editarlos.

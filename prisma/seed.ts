@@ -15,6 +15,7 @@ import {
   INSTALL_VIDEOS,
   MENUS,
   PAYMENT_METHODS,
+  PROMO_BANNERS,
   DUMMY_DISCOUNTS,
   DUMMY_AREA_PER_BOX,
   DUMMY_PRICE,
@@ -79,7 +80,8 @@ async function seedCategories() {
         description: section.description || own?.intro,
         imageUrl: photo((own ?? firstChild)!.portada),
         imageAlt: section.name,
-        showInHome: true,
+        // En el home van las subcategorías; una sección sin ellas (Accesorios) se muestra sola.
+        showInHome: section.children.length === 0,
         position: p,
       },
     });
@@ -94,6 +96,7 @@ async function seedCategories() {
           description: child.intro,
           imageUrl: photo(child.portada),
           imageAlt: child.nombre,
+          showInHome: true,
           installVideoUrl: INSTALL_VIDEOS[child.slug] ?? null,
           position: c,
           parentId: created.id,
@@ -231,6 +234,7 @@ async function main() {
   await db.banner.createMany({
     data: [
       ...HERO_BANNERS.map((banner, position) => ({ ...banner, placement: "HOME_HERO" as const, position })),
+      ...PROMO_BANNERS.map((banner, position) => ({ ...banner, placement: "HOME_PROMO" as const, position })),
       { ...ANNOUNCEMENT, placement: "ANNOUNCEMENT" as const },
     ],
   });
