@@ -91,6 +91,12 @@ export async function getOrderDetail(id: string) {
     subtotal: Number(order.subtotal),
     shippingCost: Number(order.shippingCost),
     total: Number(order.total),
+    discount: Number(order.discount),
+    // El IVA no tiene columna: es lo que queda del total (0 en pedidos de antes del IVA).
+    tax:
+      Math.round(
+        (Number(order.total) - (Number(order.subtotal) - Number(order.discount)) - Number(order.shippingCost)) * 100,
+      ) / 100,
     items: order.items.map((i) => ({ ...i, unitPrice: Number(i.unitPrice), lineTotal: Number(i.lineTotal) })),
   };
 }

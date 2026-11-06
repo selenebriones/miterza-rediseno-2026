@@ -23,6 +23,9 @@ type CartContextValue = {
   updateQuantity: (variantId: string, quantity: number) => void;
   removeItem: (variantId: string) => void;
   replaceItems: (items: CartItem[]) => void; // tras validar contra la base
+  // Cupón aplicado (código y monto que confirmó el servidor). El pedido lo vuelve a validar.
+  coupon: AppliedCoupon | null;
+  setCoupon: (coupon: AppliedCoupon | null) => void;
   clear: () => void;
   // false en el servidor y en el primer render: aún no se leyó localStorage.
   hydrated: boolean;
@@ -30,8 +33,11 @@ type CartContextValue = {
   bumpKey: number;
 };
 
+export type AppliedCoupon = { code: string; amount: number };
+
 const CartContext = createContext<CartContextValue | null>(null);
 const STORAGE_KEY = "miterza-cart";
+const COUPON_KEY = "miterza-coupon";
 const EMPTY_CART: CartItem[] = [];
 
 // Descarta líneas dañadas (cantidad o precio que no son números), p. ej. de una versión anterior.
@@ -43,6 +49,7 @@ const clean = (list: CartItem[]) => (list.every(isValidLine) ? list : list.filte
 export function CartProvider({ children }: { children: React.ReactNode }) {
   const [storedItems, setItems] = useLocalStorage(STORAGE_KEY, EMPTY_CART);
   const items = useMemo(() => clean(storedItems), [storedItems]);
+  const [coupon, setStoredCoupon] = useLocalStorage<AppliedCoupon | null>(COUPON_KEY, null);
   const [isOpen, setOpen] = useState(false);
   const [bumpKey, setBumpKey] = useState(0);
   const [announcement, setAnnouncement] = useState("");
@@ -89,7 +96,11 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
   );
 
   const replaceItems = useCallback((next: CartItem[]) => setItems(next), [setItems]);
-  const clear = useCallback(() => setItems(null), [setItems]);
+  const setCoupon = useCallback((next: AppliedCoupon | null) => setStoredCoupon(next), [setStoredCoupon]);
+  const clear = useCallback(() => {
+    setItems(null);
+    setStoredCoupon(null);
+  }, [setItems, setStoredCoupon]);
 
   const value = useMemo<CartContextValue>(
     () => ({
@@ -102,11 +113,13 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
       updateQuantity,
       removeItem,
       replaceItems,
+      coupon,
+      setCoupon,
       clear,
       hydrated,
       bumpKey,
     }),
-    [items, isOpen, addItem, updateQuantity, removeItem, replaceItems, clear, hydrated, bumpKey],
+    [items, isOpen, addItem, updateQuantity, removeItem, replaceItems, coupon, setCoupon, clear, hydrated, bumpKey],
   );
 
   return (

@@ -15,14 +15,15 @@ import {
 } from "lucide-react";
 import { useCart, type CartItem } from "./cart-provider";
 import { FreeShippingProgress } from "./free-shipping-progress";
+import { CouponForm } from "./coupon-form";
 import { OrderTotals } from "./order-totals";
 import { useCartValidation } from "./use-cart-validation";
-import { computeShipping, formatPrice } from "@/lib/store-config";
+import { computeTotals, formatPrice } from "@/lib/store-config";
 
 const UNDO_MS = 5000;
 
 export function CartPage({ categories }: { categories: { slug: string; name: string }[] }) {
-  const { items, count, subtotal, updateQuantity, removeItem, addItem, hydrated } = useCart();
+  const { items, count, subtotal, coupon, updateQuantity, removeItem, addItem, hydrated } = useCart();
   const { validating, notices, error, maxFor } = useCartValidation();
   const [removed, setRemoved] = useState<CartItem | null>(null);
   const undoTimer = useRef<ReturnType<typeof setTimeout>>(undefined);
@@ -44,7 +45,7 @@ export function CartPage({ categories }: { categories: { slug: string; name: str
     setRemoved(null);
   }
 
-  const total = subtotal + computeShipping(subtotal);
+  const { total } = computeTotals(subtotal, coupon?.amount);
 
   return (
     <div className="container pt-6 pb-32 lg:pt-10 lg:pb-24">
@@ -150,7 +151,7 @@ export function CartPage({ categories }: { categories: { slug: string; name: str
 
             <Link
               href="/productos"
-              className="mt-5 inline-flex min-h-tap items-center gap-2 font-semibold text-brand underline-offset-4 hover:underline"
+              className="mt-5 inline-flex items-center gap-2 rounded-pill bg-mist px-5 py-2 text-sm font-bold text-brand transition-colors hover:bg-brand hover:text-white"
             >
               <ArrowLeftIcon className="size-4" aria-hidden="true" />
               Seguir comprando
@@ -158,9 +159,12 @@ export function CartPage({ categories }: { categories: { slug: string; name: str
           </div>
 
           <aside className="mt-8 lg:col-span-5 lg:mt-0 xl:col-span-4" aria-label="Resumen del pedido">
-            <div className="rounded-card border border-line p-5 lg:sticky lg:top-32 lg:p-6">
-              <h2 className="text-lg font-bold">Resumen</h2>
-              <OrderTotals subtotal={subtotal} className="mt-4" />
+            <div className="rounded-[28px] bg-mist p-6 lg:sticky lg:top-32 md:p-8">
+              <h2 className="text-2xl font-bold text-black">Resumen</h2>
+              <div className="mt-5 border-b border-black/10 pb-5">
+                <CouponForm />
+              </div>
+              <OrderTotals subtotal={subtotal} coupon={coupon} className="mt-5" />
               <Link
                 href="/checkout"
                 className="mt-5 hidden h-12 w-full items-center justify-center rounded-pill bg-brand font-semibold text-white transition-colors hover:bg-accent hover:text-brand active:bg-accent-hover lg:inline-flex"
@@ -170,7 +174,7 @@ export function CartPage({ categories }: { categories: { slug: string; name: str
               <ul className="mt-5 space-y-2 text-sm">
                 <li className="flex items-center gap-2">
                   <LockIcon className="size-4 text-brand" aria-hidden="true" />
-                  Compra segura, sin crear cuenta
+                  Compra segura
                 </li>
                 <li className="flex items-center gap-2">
                   <ShieldCheckIcon className="size-4 text-brand" aria-hidden="true" />
@@ -188,7 +192,7 @@ export function CartPage({ categories }: { categories: { slug: string; name: str
           <div className="flex items-center gap-4">
             <div className="min-w-0 flex-1">
               <p className="text-xs">Total</p>
-              <p className="text-lg leading-tight font-bold text-heading tabular-nums">{formatPrice(total)}</p>
+              <p className="text-2xl leading-tight font-bold text-black tabular-nums">{formatPrice(total)}</p>
             </div>
             <Link
               href="/checkout"

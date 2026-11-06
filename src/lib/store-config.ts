@@ -12,6 +12,8 @@ export const storeConfig = {
   freeShippingThreshold: 999,
   // confirmar con el cliente: costo de envío estándar debajo del monto de envío gratis (MXN)
   shippingFlatRate: 199,
+  // IVA sobre el subtotal de productos (los precios del catálogo van sin IVA).
+  taxRate: 0.16,
   social: [
     { network: "facebook", label: "Facebook", url: "https://www.facebook.com/TerzaMexico" },
     { network: "instagram", label: "Instagram", url: "https://www.instagram.com/terzamexico" },
@@ -35,5 +37,20 @@ export function formatPrice(value: number) {
 export function computeShipping(subtotal: number) {
   return subtotal === 0 || subtotal >= storeConfig.freeShippingThreshold ? 0 : storeConfig.shippingFlatRate;
 }
+
+const roundCents = (value: number) => Math.round(value * 100) / 100;
+
+// (Subtotal − descuento) + envío ("Gratis" cuenta como 0) + 16 % de IVA sobre el subtotal ya con
+// descuento. El envío gratis se decide con el subtotal antes del cupón. Lo usan el carrito, el
+// checkout y la acción que crea el pedido, para que el total mostrado y el cobrado coincidan.
+export function computeTotals(subtotal: number, couponAmount = 0) {
+  const shipping = computeShipping(subtotal);
+  const discount = roundCents(Math.min(Math.max(couponAmount, 0), subtotal));
+  const taxable = subtotal - discount;
+  const tax = roundCents(taxable * storeConfig.taxRate);
+  return { subtotal, shipping, discount, tax, total: roundCents(taxable + shipping + tax) };
+}
+
+export const taxLabel = `${Math.round(storeConfig.taxRate * 100)}% de IVA`;
 
 export const formatOrderNumber = (number: number) => `MT-${String(number).padStart(6, "0")}`;

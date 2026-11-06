@@ -4,7 +4,7 @@ import Link from "next/link";
 import { startTransition, useActionState, useRef, useState } from "react";
 import { AlertCircleIcon, ArrowLeftIcon, ChevronDownIcon, ImageIcon, Loader2Icon, LockIcon } from "lucide-react";
 import { placeOrder, type CheckoutState } from "@/app/(checkout)/checkout/actions";
-import { useCart, type CartItem } from "@/components/cart/cart-provider";
+import { useCart, type AppliedCoupon, type CartItem } from "@/components/cart/cart-provider";
 import { OrderTotals } from "@/components/cart/order-totals";
 import { useCartValidation } from "@/components/cart/use-cart-validation";
 import {
@@ -17,13 +17,15 @@ import {
 } from "@/lib/checkout-validation";
 import { MEXICAN_STATES } from "@/lib/mexico";
 import type { PaymentMethodOption } from "@/lib/payments";
-import { computeShipping, formatPrice } from "@/lib/store-config";
+import { computeTotals, formatPrice } from "@/lib/store-config";
 import { cn } from "@/lib/utils";
 
 const initialState: CheckoutState = { status: "idle" };
 
-export function CheckoutForm({ paymentMethods }: { paymentMethods: PaymentMethodOption[] }) {
-  const { items, subtotal, hydrated } = useCart();
+type Customer = { email: string; firstName: string; lastName: string };
+
+export function CheckoutForm({ paymentMethods, customer }: { paymentMethods: PaymentMethodOption[]; customer: Customer }) {
+  const { items, subtotal, coupon, hydrated } = useCart();
   const { validating, notices } = useCartValidation();
   const [state, formAction, pending] = useActionState(placeOrder, initialState);
   const [clientErrors, setClientErrors] = useState<CheckoutErrors>({});
@@ -31,8 +33,9 @@ export function CheckoutForm({ paymentMethods }: { paymentMethods: PaymentMethod
 
   // Errores del servidor del último envío, sustituidos por los de cliente al corregir cada campo.
   const errors: CheckoutErrors = { ...state.fieldErrors, ...clientErrors };
-  const values = state.values ?? {};
-  const total = subtotal + computeShipping(subtotal);
+  // Antes del primer envío, los datos de la cuenta; después, lo que se capturó.
+  const values: Partial<CheckoutValues> = state.values ?? customer;
+  const { total } = computeTotals(subtotal, coupon?.amount);
 
   function onBlur(event: React.FocusEvent<HTMLFormElement>) {
     const field = event.target.name as CheckoutField;
@@ -91,17 +94,17 @@ export function CheckoutForm({ paymentMethods }: { paymentMethods: PaymentMethod
   return (
     <div className="container pt-4 pb-16 lg:pt-10">
       {/* Móvil: resumen plegable con el total siempre visible. */}
-      <details className="group -mx-4 border-b border-line bg-surface lg:hidden">
+      <details className="group -mx-4 border-b border-line bg-white lg:hidden">
         <summary className="flex min-h-14 cursor-pointer list-none items-center justify-between gap-3 px-4 text-brand [&::-webkit-details-marker]:hidden">
           <span className="flex items-center gap-2 font-semibold">
             <span className="group-open:hidden">Ver resumen</span>
             <span className="hidden group-open:inline">Ocultar resumen</span>
             <ChevronDownIcon className="size-4 transition-transform group-open:rotate-180" aria-hidden="true" />
           </span>
-          <span className="text-lg font-bold text-heading tabular-nums">{formatPrice(total)}</span>
+          <span className="text-2xl font-bold text-black tabular-nums">{formatPrice(total)}</span>
         </summary>
         <div className="px-4 pb-5">
-          <Summary items={items} subtotal={subtotal} />
+          <Summary items={items} subtotal={subtotal} coupon={coupon} />
         </div>
       </details>
 
@@ -109,13 +112,15 @@ export function CheckoutForm({ paymentMethods }: { paymentMethods: PaymentMethod
         <div className="lg:col-span-7">
           <Link
             href="/carrito"
-            className="inline-flex min-h-tap items-center gap-2 text-sm font-semibold text-brand hover:underline"
+            className="inline-flex items-center gap-2 rounded-pill bg-mist px-5 py-2 text-sm font-bold text-brand transition-colors hover:bg-brand hover:text-white"
           >
             <ArrowLeftIcon className="size-4" aria-hidden="true" />
             Volver al carrito
           </Link>
           <h1 className="mt-2 text-[1.75rem] leading-tight font-bold lg:text-[2.25rem]">Finalizar compra</h1>
-          <p className="mt-1 text-sm">No necesitas crear una cuenta.</p>
+          <p className="mt-1 text-sm">
+            Comprando como <strong className="font-semibold text-heading">{customer.email}</strong>
+          </p>
 
           {notices.length > 0 && (
             <div
@@ -146,6 +151,8 @@ export function CheckoutForm({ paymentMethods }: { paymentMethods: PaymentMethod
               name="items"
               value={JSON.stringify(items.map(({ variantId, quantity }) => ({ variantId, quantity })))}
             />
+            {/* Solo el código: el servidor vuelve a validarlo y decide el monto. */}
+            <input type="hidden" name="coupon" value={coupon?.code ?? ""} />
             {/* Campo trampa para bots: oculto para personas y lectores de pantalla. */}
             <div aria-hidden="true" className="absolute -left-[9999px] h-px w-px overflow-hidden">
               <label htmlFor="website">No llenar</label>
@@ -326,9 +333,9 @@ export function CheckoutForm({ paymentMethods }: { paymentMethods: PaymentMethod
         </div>
 
         <aside className="hidden lg:col-span-5 lg:block" aria-label="Resumen del pedido">
-          <div className="sticky top-8 rounded-card bg-surface p-6">
-            <h2 className="text-lg font-bold">Resumen del pedido</h2>
-            <Summary items={items} subtotal={subtotal} />
+          <div className="sticky top-8 rounded-[28px] bg-mist p-6 md:p-8">
+            <h2 className="text-2xl font-bold text-black">Resumen del pedido</h2>
+            <Summary items={items} subtotal={subtotal} coupon={coupon} />
           </div>
         </aside>
       </div>
@@ -336,7 +343,7 @@ export function CheckoutForm({ paymentMethods }: { paymentMethods: PaymentMethod
   );
 }
 
-function Summary({ items, subtotal }: { items: CartItem[]; subtotal: number }) {
+function Summary({ items, subtotal, coupon }: { items: CartItem[]; subtotal: number; coupon: AppliedCoupon | null }) {
   return (
     <div>
       <ul className="mt-4 space-y-4">
@@ -364,7 +371,7 @@ function Summary({ items, subtotal }: { items: CartItem[]; subtotal: number }) {
           </li>
         ))}
       </ul>
-      <OrderTotals subtotal={subtotal} className="mt-5 border-t border-line pt-5" />
+      <OrderTotals subtotal={subtotal} coupon={coupon} className="mt-5 border-t border-black/10 pt-5" />
     </div>
   );
 }

@@ -1,4 +1,7 @@
 import type { Metadata } from "next";
+import { redirect } from "next/navigation";
+import { Suspense } from "react";
+import { getSession } from "@/lib/session";
 import { CheckoutForm } from "@/components/checkout/checkout-form";
 import { getEnabledPaymentMethods } from "@/lib/payments";
 
@@ -7,7 +10,25 @@ export const metadata: Metadata = {
   robots: { index: false, follow: false },
 };
 
-export default async function CheckoutPage() {
+// Para pagar hay que tener cuenta: sin sesión se manda a ingresar y, al entrar, vuelve aquí.
+export default function CheckoutPage() {
+  return (
+    <Suspense fallback={<div className="container h-96 pt-10" />}>
+      <Checkout />
+    </Suspense>
+  );
+}
+
+async function Checkout() {
+  const session = await getSession();
+  if (!session?.user) redirect("/cuenta/ingresar?desde=/checkout");
+
   const paymentMethods = await getEnabledPaymentMethods();
-  return <CheckoutForm paymentMethods={paymentMethods} />;
+  const [firstName = "", ...rest] = (session.user.name ?? "").split(" ");
+  return (
+    <CheckoutForm
+      paymentMethods={paymentMethods}
+      customer={{ email: session.user.email ?? "", firstName, lastName: rest.join(" ") }}
+    />
+  );
 }

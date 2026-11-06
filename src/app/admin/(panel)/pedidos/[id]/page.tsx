@@ -8,7 +8,7 @@ import { StatusPanel } from "@/components/admin/status-panel";
 import { getOrderDetail } from "@/lib/admin/orders";
 import { requirePermission } from "@/lib/admin/session";
 import { adminDateFormat, STATUS_META } from "@/lib/order-status";
-import { formatOrderNumber, formatPrice } from "@/lib/store-config";
+import { formatOrderNumber, formatPrice, taxLabel } from "@/lib/store-config";
 import { cn } from "@/lib/utils";
 
 export const metadata: Metadata = { title: "Detalle del pedido" };
@@ -84,12 +84,24 @@ async function OrderDetail({ params }: Pick<PageProps<"/admin/pedidos/[id]">, "p
                 <dt>Subtotal</dt>
                 <dd className="tabular-nums">{formatPrice(order.subtotal)}</dd>
               </div>
+              {order.discount > 0 && (
+                <div className="flex justify-between">
+                  <dt>Descuento{order.couponCode ? ` (${order.couponCode})` : ""}</dt>
+                  <dd className="tabular-nums">−{formatPrice(order.discount)}</dd>
+                </div>
+              )}
               <div className="flex justify-between">
                 <dt>Envío</dt>
                 <dd className="tabular-nums">
                   {order.shippingCost === 0 ? "Gratis" : formatPrice(order.shippingCost)}
                 </dd>
               </div>
+              {order.tax > 0 && (
+                <div className="flex justify-between">
+                  <dt>{taxLabel}</dt>
+                  <dd className="tabular-nums">{formatPrice(order.tax)}</dd>
+                </div>
+              )}
               <div className="flex justify-between text-base font-bold text-heading">
                 <dt>Total</dt>
                 <dd className="tabular-nums">{formatPrice(order.total)}</dd>

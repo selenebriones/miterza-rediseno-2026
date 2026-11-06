@@ -1,6 +1,7 @@
 "use server";
 
 import { revalidateTag } from "next/cache";
+import { auth } from "@/auth";
 import { redirect } from "next/navigation";
 import { parseCartLines, variantForCartSelect, variantLabelOf } from "@/lib/cart";
 import {
@@ -11,7 +12,8 @@ import {
   type CheckoutValues,
 } from "@/lib/checkout-validation";
 import { CACHE_TAGS, db } from "@/lib/db";
-import { computeShipping } from "@/lib/store-config";
+import { findCoupon } from "@/lib/coupons";
+import { computeTotals } from "@/lib/store-config";
 
 export type CheckoutState = {
   status: "idle" | "error";
@@ -36,6 +38,10 @@ export async function placeOrder(_prev: CheckoutState, formData: FormData): Prom
     CHECKOUT_FIELDS.map((field) => [field, String(formData.get(field) ?? "").trim()]),
   ) as CheckoutValues;
 
+  // Para comprar hay que tener cuenta (la página ya lo exige; aquí se vuelve a revisar).
+  const session = await auth();
+  if (!session?.user?.id) redirect("/cuenta/ingresar?desde=/checkout");
+
   // Campo trampa: invisible para personas; si viene lleno, es un bot.
   if (formData.get("website")) return { status: "error", message: "No pudimos procesar tu pedido.", values };
 
@@ -52,6 +58,17 @@ export async function placeOrder(_prev: CheckoutState, formData: FormData): Prom
   }
   const lines = parseCartLines(rawItems);
   if (!lines) return { status: "error", message: "Tu carrito está vacío o no es válido.", values, cartIssue: true };
+
+  const couponCode = String(formData.get("coupon") ?? "").trim();
+  const coupon = couponCode ? findCoupon(couponCode) : null;
+  if (couponCode && !coupon) {
+    return {
+      status: "error",
+      message: "El código de descuento ya no es válido. Quítalo en tu carrito para continuar.",
+      values,
+      cartIssue: true,
+    };
+  }
 
   let orderId: string;
   try {
@@ -96,10 +113,11 @@ export async function placeOrder(_prev: CheckoutState, formData: FormData): Prom
       });
 
       const subtotal = items.reduce((sum, item) => sum + item.lineTotal, 0);
-      const shippingCost = computeShipping(subtotal);
+      const { shipping: shippingCost, discount, total } = computeTotals(subtotal, coupon?.amount);
 
       const order = await tx.order.create({
         data: {
+          userId: session.user.id,
           email: values.email.toLowerCase(),
           phone: normalizePhone(values.phone),
           firstName: values.firstName,
@@ -112,7 +130,9 @@ export async function placeOrder(_prev: CheckoutState, formData: FormData): Prom
           shippingReferences: values.references || null,
           subtotal,
           shippingCost,
-          total: subtotal + shippingCost,
+          discount,
+          couponCode: coupon && discount > 0 ? coupon.code : null,
+          total, // subtotal − descuento + envío + IVA (el IVA se obtiene restando lo demás)
           paymentMethodId: paymentMethod.id,
           items: { create: items },
           statusHistory: { create: { toStatus: "PENDING_PAYMENT" } },
