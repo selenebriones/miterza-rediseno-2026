@@ -22,6 +22,7 @@ export default function CheckoutPage() {
 async function Checkout() {
   const session = await getSession();
   if (!session?.user) redirect("/cuenta/ingresar?desde=/checkout");
+  if (session.user.role !== "CUSTOMER") redirect("/admin");
 
   const paymentMethods = await getEnabledPaymentMethods();
   const [firstName = "", ...rest] = (session.user.name ?? "").split(" ");

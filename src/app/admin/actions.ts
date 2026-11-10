@@ -19,6 +19,7 @@ export async function login(_prev: LoginState, formData: FormData): Promise<Logi
     await signIn("credentials", {
       email,
       password: formData.get("password"),
+      area: "admin",
       redirectTo: safeReturnPath(formData.get("desde")),
     });
   } catch (error) {

@@ -28,6 +28,7 @@ export default function AccountPage() {
 async function Account() {
   const session = await getSession();
   if (!session?.user) redirect("/cuenta/ingresar");
+  if (session.user.role === "ADMIN") redirect("/admin");
 
   const orders = await db.order.findMany({
     where: { userId: session.user.id },

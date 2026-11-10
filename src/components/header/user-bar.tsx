@@ -9,6 +9,7 @@ export async function UserBar() {
   const session = await getSession();
   if (!session?.user) return null;
   const firstName = session.user.name?.split(" ")[0];
+  const isAdmin = session.user.role === "ADMIN";
 
   return (
     <div className="bg-brand-dark text-sm text-white">
@@ -17,13 +18,14 @@ export async function UserBar() {
           <UserIcon className="size-4 shrink-0 text-accent" aria-hidden="true" />
           <span className="truncate">
             Hola{firstName ? `, ${firstName}` : ""}
+            {isAdmin && <span className="ml-2 rounded-pill bg-white/15 px-2 py-0.5 text-xs font-semibold">Administrador</span>}
             <span className="hidden text-white/70 sm:inline"> · {session.user.email}</span>
           </span>
         </p>
         <div className="flex shrink-0 items-center gap-2">
           {/* En móvil sobra: el ícono de cuenta del header lleva al mismo lugar. */}
-          <Link href="/cuenta" className="rounded-pill px-3 py-1 font-semibold hover:bg-white/10 max-sm:hidden">
-            Mi cuenta
+          <Link href={isAdmin ? "/admin" : "/cuenta"} className="rounded-pill px-3 py-1 font-semibold hover:bg-white/10 max-sm:hidden">
+            {isAdmin ? "Volver al panel" : "Mi cuenta"}
           </Link>
           <form action={customerLogout}>
             <button

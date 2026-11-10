@@ -273,9 +273,14 @@ export async function updateProduct(_prev: ProductFormState, formData: FormData)
 
 function slugOrSkuErrorMessage(error: unknown): string {
   const code = (error as { code?: string } | null)?.code;
-  const target = (error as { meta?: { target?: string[] } } | null)?.meta?.target?.join(",") ?? "";
-  if (code === "P2002" && target.includes("slug")) return "Ese slug ya lo usa otro producto.";
-  if (code === "P2002" && target.includes("sku")) return "Uno de los SKU ya existe en otra variante.";
+  const meta = (error as { meta?: { target?: string[]; modelName?: string } } | null)?.meta;
+  const target = meta?.target?.join(",") ?? "";
+  if (code === "P2002" && (target.includes("slug") || meta?.modelName === "Product")) {
+    return "Ese slug ya lo usa otro producto.";
+  }
+  if (code === "P2002" && (target.includes("sku") || meta?.modelName === "ProductVariant")) {
+    return "Uno de los SKU ya existe en otra variante.";
+  }
   console.error("Error al guardar el producto", error);
   return "No pudimos guardar el producto. Intenta de nuevo.";
 }

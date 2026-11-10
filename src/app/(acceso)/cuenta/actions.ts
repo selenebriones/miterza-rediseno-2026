@@ -25,6 +25,7 @@ export async function customerLogin(_prev: AuthFormState, formData: FormData): P
     await signIn("credentials", {
       email,
       password: formData.get("password"),
+      area: "customer",
       redirectTo: safeReturnPath(formData.get("desde")),
     });
   } catch (error) {
@@ -75,6 +76,7 @@ export async function registerCustomer(_prev: AuthFormState, formData: FormData)
   await signIn("credentials", {
     email: values.email,
     password,
+    area: "customer",
     redirectTo: safeReturnPath(formData.get("desde")),
   });
   return {};

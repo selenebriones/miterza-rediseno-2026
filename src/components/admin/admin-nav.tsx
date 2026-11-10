@@ -52,7 +52,7 @@ export function AdminNav({ user }: Props) {
             <NavContent user={user} inSheet />
           </SheetContent>
         </Sheet>
-        <Logo className="h-8" />
+        <Logo href="/admin" aria-label="Mi Terza, ir al panel" className="h-8" />
         <span className="w-tap" aria-hidden="true" />
       </header>
     </>
@@ -67,7 +67,7 @@ function NavContent({ user, inSheet }: Props & { inSheet?: boolean }) {
   return (
     <div className="flex h-full flex-col">
       <div className="flex h-16 shrink-0 items-center gap-3 px-5">
-        <Logo className="h-9" />
+        <Logo href="/admin" aria-label="Mi Terza, ir al panel" className="h-9" />
         <span className="rounded-pill bg-white/15 px-2 py-0.5 text-xs font-semibold">Panel</span>
       </div>
 

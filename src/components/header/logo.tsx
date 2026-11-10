@@ -5,13 +5,14 @@ import { cn } from "@/lib/utils";
 type LogoProps = Omit<React.ComponentProps<typeof Link>, "href" | "children"> & {
   // "light": logo en blanco para fondos brand; "color": original para fondos claros.
   tone?: "light" | "color";
+  href?: React.ComponentProps<typeof Link>["href"];
 };
 
 // Pendiente: pedir al cliente el logo en SVG (versión a color y versión en blanco).
-export function Logo({ className, tone = "light", ...props }: LogoProps) {
+export function Logo({ className, tone = "light", href = "/", ...props }: LogoProps) {
   return (
     <Link
-      href="/"
+      href={href}
       aria-label="Mi Terza, ir al inicio"
       className={cn("flex h-9 shrink-0 items-center rounded-md lg:h-11", className)}
       {...props}

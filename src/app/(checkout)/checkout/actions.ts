@@ -42,6 +42,7 @@ export async function placeOrder(_prev: CheckoutState, formData: FormData): Prom
   // Para comprar hay que tener cuenta (la página ya lo exige; aquí se vuelve a revisar).
   const session = await auth();
   if (!session?.user?.id) redirect("/cuenta/ingresar?desde=/checkout");
+  if (session.user.role !== "CUSTOMER") redirect("/admin");
 
   // Campo trampa: invisible para personas; si viene lleno, es un bot.
   if (formData.get("website")) return { status: "error", message: "No pudimos procesar tu pedido.", values };
