@@ -60,6 +60,9 @@ export async function placeOrder(_prev: CheckoutState, formData: FormData): Prom
   const lines = parseCartLines(rawItems);
   if (!lines) return { status: "error", message: "Tu carrito está vacío o no es válido.", values, cartIssue: true };
 
+  // Ubicación del mapa (opcional). Solo se guarda si cae dentro de México; si no, se ignora.
+  const location = parseLocation(formData.get("lat"), formData.get("lng"));
+
   const couponCode = String(formData.get("coupon") ?? "").trim();
   const coupon = couponCode ? findCoupon(couponCode) : null;
   if (couponCode && !coupon) {
@@ -137,6 +140,8 @@ export async function placeOrder(_prev: CheckoutState, formData: FormData): Prom
           shippingPostalCode: values.postalCode,
           shippingCity: values.city,
           shippingState: values.state,
+          shippingLat: location?.lat ?? null,
+          shippingLng: location?.lng ?? null,
           shippingReferences: values.references || null,
           subtotal,
           shippingCost,
@@ -179,4 +184,14 @@ export async function placeOrder(_prev: CheckoutState, formData: FormData): Prom
   // Cambiaron existencias: el catálogo se actualiza en las siguientes visitas.
   revalidateTag(CACHE_TAGS.catalog, "max");
   redirect(`/checkout/confirmacion/${orderId}`);
+}
+
+// Coordenadas del pin del checkout: números dentro del recuadro de México, con 6 decimales (~10 cm).
+function parseLocation(rawLat: FormDataEntryValue | null, rawLng: FormDataEntryValue | null) {
+  if (rawLat === null || rawLng === null) return null;
+  const lat = Number(rawLat);
+  const lng = Number(rawLng);
+  const inMexico = lat >= 14 && lat <= 33 && lng >= -119 && lng <= -86;
+  if (!Number.isFinite(lat) || !Number.isFinite(lng) || !inMexico) return null;
+  return { lat: Math.round(lat * 1e6) / 1e6, lng: Math.round(lng * 1e6) / 1e6 };
 }

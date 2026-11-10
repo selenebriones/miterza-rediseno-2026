@@ -19,12 +19,18 @@ export async function getOrderForConfirmation(id: string) {
       shippingCity: true,
       shippingState: true,
       shippingReferences: true,
+      shippingLat: true,
+      shippingLng: true,
       subtotal: true,
       shippingCost: true,
       discount: true,
       couponCode: true,
       total: true,
       createdAt: true,
+      shippingCarrier: true,
+      trackingNumber: true,
+      // Fecha de cada cambio de estado (sin las notas internas del equipo).
+      statusHistory: { orderBy: { createdAt: "asc" }, select: { toStatus: true, createdAt: true } },
       paymentMethod: { select: { name: true, instructions: true } },
       items: {
         orderBy: { id: "asc" },
@@ -46,6 +52,8 @@ export async function getOrderForConfirmation(id: string) {
     ...order,
     subtotal: Number(order.subtotal),
     shippingCost: Number(order.shippingCost),
+    shippingLat: order.shippingLat === null ? null : Number(order.shippingLat),
+    shippingLng: order.shippingLng === null ? null : Number(order.shippingLng),
     total: Number(order.total),
     discount: Number(order.discount),
     // El IVA no tiene columna: es lo que queda del total (0 en pedidos de antes del IVA).

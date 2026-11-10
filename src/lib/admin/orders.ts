@@ -92,6 +92,8 @@ export async function getOrderDetail(id: string) {
     shippingCost: Number(order.shippingCost),
     total: Number(order.total),
     discount: Number(order.discount),
+    shippingLat: order.shippingLat === null ? null : Number(order.shippingLat),
+    shippingLng: order.shippingLng === null ? null : Number(order.shippingLng),
     // El IVA no tiene columna: es lo que queda del total (0 en pedidos de antes del IVA).
     tax:
       Math.round(

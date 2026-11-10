@@ -1,8 +1,10 @@
 "use client";
 
+import { PaymentChooser, type PaymentChoice } from "./payment-chooser";
+import { LocationMap, type AddressQuery } from "./location-map";
 import Link from "next/link";
 import { startTransition, useActionState, useRef, useState } from "react";
-import { AlertCircleIcon, ArrowLeftIcon, ChevronDownIcon, ImageIcon, Loader2Icon, LockIcon } from "lucide-react";
+import { AlertCircleIcon, ArrowLeftIcon, ChevronDownIcon, ImageIcon, InfoIcon, Loader2Icon, LockIcon } from "lucide-react";
 import { placeOrder, type CheckoutState } from "@/app/(checkout)/checkout/actions";
 import { cartLineKey, useCart, type AppliedCoupon, type CartItem } from "@/components/cart/cart-provider";
 import { OrderTotals } from "@/components/cart/order-totals";
@@ -22,6 +24,8 @@ import { cn } from "@/lib/utils";
 
 const initialState: CheckoutState = { status: "idle" };
 
+const ADDRESS_FIELDS: (keyof AddressQuery)[] = ["street", "neighborhood", "postalCode", "city", "state"];
+
 type Customer = { email: string; firstName: string; lastName: string };
 
 export function CheckoutForm({ paymentMethods, customer }: { paymentMethods: PaymentMethodOption[]; customer: Customer }) {
@@ -29,6 +33,9 @@ export function CheckoutForm({ paymentMethods, customer }: { paymentMethods: Pay
   const { validating, notices } = useCartValidation();
   const [state, formAction, pending] = useActionState(placeOrder, initialState);
   const [clientErrors, setClientErrors] = useState<CheckoutErrors>({});
+  // Método de pago elegido. Con tarjeta todavía no se puede enviar: falta conectar la pasarela.
+  const [paymentChoice, setPaymentChoice] = useState<PaymentChoice>(null);
+  const cardChosen = paymentChoice === "card";
   const formRef = useRef<HTMLFormElement>(null);
 
   // Errores del servidor del último envío, sustituidos por los de cliente al corregir cada campo.
@@ -36,9 +43,25 @@ export function CheckoutForm({ paymentMethods, customer }: { paymentMethods: Pay
   // Antes del primer envío, los datos de la cuenta; después, lo que se capturó.
   const values: Partial<CheckoutValues> = state.values ?? customer;
   const { total } = computeTotals(subtotal, coupon?.amount);
+  // Dirección para ubicar el pin del mapa: se actualiza al salir de cada campo (no en cada tecla).
+  const [address, setAddress] = useState<AddressQuery>(() => ({
+    street: values.street ?? "",
+    neighborhood: values.neighborhood ?? "",
+    postalCode: values.postalCode ?? "",
+    city: values.city ?? "",
+    state: values.state ?? "",
+  }));
+
+  function syncAddress(field: string) {
+    if (!ADDRESS_FIELDS.includes(field as keyof AddressQuery) || !formRef.current) return;
+    const data = new FormData(formRef.current);
+    const next = Object.fromEntries(ADDRESS_FIELDS.map((f) => [f, String(data.get(f) ?? "").trim()])) as AddressQuery;
+    setAddress((prev) => (JSON.stringify(prev) === JSON.stringify(next) ? prev : next));
+  }
 
   function onBlur(event: React.FocusEvent<HTMLFormElement>) {
     const field = event.target.name as CheckoutField;
+    syncAddress(field);
     if (!CHECKOUT_FIELDS.includes(field)) return;
     setClientErrors((prev) => ({ ...prev, [field]: validateField(field, event.target.value) }));
   }
@@ -46,6 +69,8 @@ export function CheckoutForm({ paymentMethods, customer }: { paymentMethods: Pay
   function onChange(event: React.ChangeEvent<HTMLFormElement>) {
     // Al corregir, el mensaje desaparece en cuanto el valor es válido (no mientras sigue mal).
     const field = event.target.name as CheckoutField;
+    // El estado es una lista: se ubica en cuanto se elige, sin esperar a salir del campo.
+    if (field === "state") syncAddress(field);
     if (errors[field] && !validateField(field, event.target.value)) {
       setClientErrors((prev) => ({ ...prev, [field]: undefined }));
     }
@@ -239,6 +264,7 @@ export function CheckoutForm({ paymentMethods, customer }: { paymentMethods: Pay
                 defaultValue={values.state}
                 options={MEXICAN_STATES}
               />
+              <LocationMap address={address} />
               <Field
                 name="references"
                 label="Referencias"
@@ -251,36 +277,15 @@ export function CheckoutForm({ paymentMethods, customer }: { paymentMethods: Pay
             </Section>
 
             <Section number={3} title="Pago">
-              {paymentMethods.length === 0 ? (
-                <p className="rounded-card bg-muted p-4 text-sm">
-                  Por el momento no hay métodos de pago disponibles. Llámanos para completar tu compra.
-                </p>
-              ) : (
-                <fieldset aria-describedby={errors.paymentMethodId ? "paymentMethodId-error" : undefined}>
-                  <legend className="sr-only">Método de pago</legend>
-                  <div className="space-y-3">
-                    {paymentMethods.map((method, index) => (
-                      <label
-                        key={method.id}
-                        className="flex cursor-pointer gap-3 rounded-card border border-input p-4 transition-colors has-checked:border-brand has-checked:bg-surface"
-                      >
-                        <input
-                          type="radio"
-                          name="paymentMethodId"
-                          value={method.id}
-                          defaultChecked={values.paymentMethodId ? values.paymentMethodId === method.id : index === 0}
-                          className="mt-0.5 size-5 shrink-0 accent-brand"
-                        />
-                        <span>
-                          <span className="block font-semibold text-heading">{method.name}</span>
-                          {method.description && <span className="mt-0.5 block text-sm">{method.description}</span>}
-                        </span>
-                      </label>
-                    ))}
-                  </div>
-                  {errors.paymentMethodId && <ErrorText id="paymentMethodId-error">{errors.paymentMethodId}</ErrorText>}
-                </fieldset>
-              )}
+              <PaymentChooser
+                transfer={paymentMethods.find((m) => m.provider === "BANK_TRANSFER")}
+                choice={paymentChoice}
+                onChoiceChange={(next) => {
+                  setPaymentChoice(next);
+                  setClientErrors((prev) => ({ ...prev, paymentMethodId: undefined }));
+                }}
+                error={errors.paymentMethodId}
+              />
             </Section>
 
             <div>
@@ -300,9 +305,16 @@ export function CheckoutForm({ paymentMethods, customer }: { paymentMethods: Pay
                   </div>
                 </div>
               )}
+              {cardChosen && (
+                <p role="status" className="mb-4 flex gap-3 rounded-card bg-surface p-4 text-sm text-heading">
+                  <InfoIcon className="mt-0.5 size-5 shrink-0 text-brand" aria-hidden="true" />
+                  El pago con tarjeta estará disponible muy pronto. Para completar tu compra hoy, elige transferencia o
+                  depósito.
+                </p>
+              )}
               <button
                 type="submit"
-                disabled={pending || validating || paymentMethods.length === 0}
+                disabled={pending || validating || cardChosen}
                 className="inline-flex h-14 w-full items-center justify-center gap-2 rounded-pill bg-brand text-base font-semibold text-white transition-colors hover:bg-accent hover:text-brand active:bg-accent-hover disabled:bg-line disabled:text-muted-foreground"
               >
                 {pending ? (

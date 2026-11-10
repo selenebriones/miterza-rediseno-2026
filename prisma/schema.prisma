@@ -463,6 +463,9 @@ model Order {
   shippingCity         String
   shippingState        String
   shippingReferences   String?
+  // Ubicación que el cliente confirmó en el mapa del checkout (opcional): para la ruta del repartidor.
+  shippingLat          Decimal? @db.Decimal(9, 6)
+  shippingLng          Decimal? @db.Decimal(9, 6)
 
   subtotal     Decimal @db.Decimal(10, 2)
   shippingCost Decimal @db.Decimal(10, 2)

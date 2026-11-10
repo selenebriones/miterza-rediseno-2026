@@ -2,10 +2,11 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Suspense } from "react";
-import { ArrowLeftIcon, ImageIcon, MailIcon, MessageCircleIcon, PhoneIcon, TruckIcon } from "lucide-react";
+import { ArrowLeftIcon, ImageIcon, MailIcon, MapPinIcon, MessageCircleIcon, NavigationIcon, PhoneIcon, TruckIcon } from "lucide-react";
 import { StatusBadge } from "@/components/admin/status-badge";
 import { StatusPanel } from "@/components/admin/status-panel";
 import { getOrderDetail } from "@/lib/admin/orders";
+import { directionLinks } from "@/lib/directions";
 import { requirePermission } from "@/lib/admin/session";
 import { adminDateFormat, STATUS_META } from "@/lib/order-status";
 import { formatOrderNumber, formatPrice, taxLabel } from "@/lib/store-config";
@@ -193,6 +194,7 @@ async function OrderDetail({ params }: Pick<PageProps<"/admin/pedidos/[id]">, "p
                 </>
               )}
             </address>
+            <DirectionLinks order={order} />
             {order.trackingNumber && (
               <p className="mt-2 flex items-center gap-2 text-sm font-medium text-heading">
                 <TruckIcon className="size-4 text-brand" aria-hidden="true" />
@@ -204,6 +206,30 @@ async function OrderDetail({ params }: Pick<PageProps<"/admin/pedidos/[id]">, "p
             <p className="mt-1 text-sm">{order.paymentMethod.name}</p>
           </section>
         </div>
+      </div>
+    </div>
+  );
+}
+
+// Ruta para el repartidor: a la ubicación exacta si el cliente puso el pin en el mapa del checkout.
+function DirectionLinks({ order }: { order: Parameters<typeof directionLinks>[0] }) {
+  const links = directionLinks(order);
+  const linkClass =
+    "inline-flex min-h-9 items-center gap-2 rounded-pill border border-brand px-3 text-sm font-semibold text-brand hover:bg-brand hover:text-white";
+  return (
+    <div className="mt-3">
+      <p className="text-xs text-muted-foreground">
+        {links.exact ? "El cliente confirmó la ubicación en el mapa." : "Sin ubicación en el mapa: se busca la dirección escrita."}
+      </p>
+      <div className="mt-2 flex flex-wrap gap-2">
+        <a href={links.google} target="_blank" rel="noopener noreferrer" className={linkClass}>
+          <MapPinIcon className="size-4" aria-hidden="true" />
+          Abrir en Google Maps
+        </a>
+        <a href={links.waze} target="_blank" rel="noopener noreferrer" className={linkClass}>
+          <NavigationIcon className="size-4" aria-hidden="true" />
+          Abrir en Waze
+        </a>
       </div>
     </div>
   );

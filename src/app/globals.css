@@ -114,3 +114,15 @@
     }
   }
 }
+
+/*
+ * Contenedor fluido en teléfonos y tablets: el `container` de Tailwind salta a anchos fijos en cada
+ * breakpoint (400, 640, 768 px) y dejaba franjas vacías a los lados (p. ej. 400 px de contenido en una
+ * pantalla de 600). Debajo de `lg` ocupa todo el ancho y solo conserva su padding (16–24 px).
+ * Va fuera de @layer para ganarle a la utilidad de Tailwind sin !important.
+ */
+@media (max-width: 1023.98px) {
+  .container {
+    max-width: none;
+  }
+}
