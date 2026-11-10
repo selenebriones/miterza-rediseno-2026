@@ -196,6 +196,8 @@ Pendiente: el cuadrito usa un acercamiento de la foto del producto; cuando el cl
 
 ## Catálogo real de terza-sitio (2026-11-04)
 
+> **Actualización (2026-11-10):** el catálogo de terza-sitio ya no se usa. La tienda vende solo tapetes y persianas con los datos de miterza.com (`prisma/data/*-miterza.tsv`, fotos en `public/tapetes` y `public/persianas`, precios reales); se borraron `prisma/data/terza-catalogo.json` y `public/catalogo/`. Lo que sigue en esta sección es histórico.
+
 Los productos de ejemplo se reemplazaron por el catálogo de terza-sitio (`prisma/data/terza-catalogo.json`, copia de `terza-sitio/src/data/catalogo.json` con las portadas elegidas a mano): 847 productos en 13 categorías, con su ficha técnica, SKU, etiqueta "Nuevo" y hasta 4 fotos cada uno (`public/catalogo/`, 1,289 fotos, 68 MB).
 
 - **Árbol y menú** como en terza-sitio: Pisos (vinílicos, laminados, híbridos, madera y alfombras), Muros (lambrín y paneles, Flexiroc, follaje artificial), Persianas (enrollables y de madera), Exterior (deck y pasto sintético) y Accesorios. El home muestra las 5 secciones.

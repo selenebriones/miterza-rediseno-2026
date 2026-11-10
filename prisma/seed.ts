@@ -12,44 +12,18 @@ import {
   ANNOUNCEMENT,
   HERO_BANNERS,
   HOME_SECTIONS,
-  INSTALL_VIDEOS,
   MENUS,
   PAYMENT_METHODS,
   PROMO_BANNERS,
   DUMMY_DISCOUNTS,
-  DUMMY_AREA_PER_BOX,
-  DUMMY_PRICE,
   BLIND_LINES,
   BLIND_STOCK,
   RUG_STOCK,
-  FLOOR_CATEGORIES,
   SECTIONS,
   type MenuSeed,
 } from "./seed-data";
 
-// Catálogo de terza-sitio (src/data/catalogo.json, con las portadas elegidas a mano ya aplicadas).
-// Las fotos están en public/catalogo/<base>.webp.
-type TerzaCategory = { seccion: string; slug: string; nombre: string; intro: string; portada: string };
-type TerzaProduct = {
-  id: number;
-  sku: string;
-  slug: string;
-  categoria: string;
-  familia: string;
-  variante: string;
-  nuevo: boolean;
-  descripcion: string;
-  fotos: string[];
-  specs: [string, string][];
-  filtros: Record<string, string>;
-};
-const catalog: { rutaFotos: string; categorias: TerzaCategory[]; productos: TerzaProduct[] } = JSON.parse(
-  readFileSync(new URL("./data/terza-catalogo.json", import.meta.url), "utf8"),
-);
 const round2 = (n: number) => Math.round(n * 100) / 100;
-const MAX_ID = Math.max(...catalog.productos.map((p) => p.id));
-const photo = (base: string) => `${catalog.rutaFotos}/${base}.webp`;
-const MAX_PHOTOS = 4;
 
 // Catálogo de persianas de miterza.com (lo dio el cliente). Una fila por color; las fotos están en
 // public/persianas/<sku>-<n>.webp (descargadas de miterza.com).
@@ -106,19 +80,13 @@ async function reset() {
 
 async function seedCategories() {
   const ids = new Map<string, string>();
-  const bySlug = new Map(catalog.categorias.map((c) => [c.slug, c]));
-
   for (const [p, section] of SECTIONS.entries()) {
-    // Una sección sin hijos es una categoría del catálogo (Tapetes = alfombras).
-    const own = bySlug.get(section.source ?? section.slug);
-    const firstChild = bySlug.get(section.children[0] ?? "");
-    // Persianas: sus subcategorías son las líneas de miterza.com, no categorías del catálogo.
     const created = await db.category.create({
       data: {
         slug: section.slug,
         name: section.name,
-        description: section.description || own?.intro,
-        imageUrl: section.imageUrl ?? photo((own ?? firstChild)!.portada),
+        description: section.description,
+        imageUrl: section.imageUrl,
         imageAlt: section.name,
         // En el home van las subcategorías; una sección sin ellas (Tapetes) se muestra sola.
         showInHome: section.children.length === 0,
@@ -127,117 +95,28 @@ async function seedCategories() {
     });
     ids.set(section.slug, created.id);
 
+    // Persianas: sus subcategorías son las líneas de miterza.com.
     for (const [c, slug] of section.children.entries()) {
-      const line = BLIND_LINES.find((l) => l.slug === slug);
-      const child = bySlug.get(slug);
-      const createdChild = await db.category.create({
-        data: line
-          ? {
-              slug,
-              name: line.name,
-              description: line.description,
-              imageUrl: line.imageUrl,
-              imageAlt: line.name,
-              showInHome: true,
-              installVideoUrl: line.installVideoUrl,
-              position: c,
-              parentId: created.id,
-            }
-          : {
-              slug,
-              name: child!.nombre,
-              description: child!.intro,
-              imageUrl: photo(child!.portada),
-              imageAlt: child!.nombre,
-              showInHome: true,
-              installVideoUrl: INSTALL_VIDEOS[slug] ?? null,
-              position: c,
-              parentId: created.id,
-            },
+      const line = BLIND_LINES.find((l) => l.slug === slug)!;
+      const child = await db.category.create({
+        data: {
+          slug,
+          name: line.name,
+          description: line.description,
+          imageUrl: line.imageUrl,
+          imageAlt: line.name,
+          showInHome: true,
+          installVideoUrl: line.installVideoUrl,
+          position: c,
+          parentId: created.id,
+        },
       });
-      ids.set(slug, createdChild.id);
+      ids.set(slug, child.id);
     }
   }
   return ids;
 }
 
-// Sección de la tienda a la que va una categoría del catálogo (undefined si la tienda no la vende).
-const parentOf = (categorySlug: string) =>
-  SECTIONS.find((s) => s.children.includes(categorySlug) || (s.source ?? s.slug) === categorySlug);
-// Slug en la tienda de una categoría del catálogo: "alfombras" se vende como "tapetes".
-const storeSlug = (categorySlug: string) => {
-  const section = parentOf(categorySlug)!;
-  return section.children.includes(categorySlug) ? categorySlug : section.slug;
-};
-
-async function seedProduct(item: TerzaProduct, categoryIds: Map<string, string>) {
-  const category = catalog.categorias.find((c) => c.slug === item.categoria)!;
-  const section = parentOf(item.categoria)!;
-  const ownSlug = storeSlug(item.categoria);
-  // "Bilbao" + "Castle" → "Bilbao Castle"; si la variante ya trae la familia se usa tal cual.
-  const name = item.variante.toLowerCase().includes(item.familia.toLowerCase())
-    ? item.variante
-    : `${item.familia} ${item.variante}`;
-
-  // Precio dummy de $1,000. Una oferta de ejemplo cada ~12 productos: $1,000 tachado y el descuento
-  // calculado sobre esa base (10, 15 o 20 %).
-  const onSale = item.id % 12 === 0;
-  const discount = DUMMY_DISCOUNTS[Math.floor(item.id / 12) % DUMMY_DISCOUNTS.length];
-  const unitPrice = onSale ? DUMMY_PRICE * (1 - discount / 100) : DUMMY_PRICE;
-
-  // Pisos: se venden por caja. El precio dummy es por m² y la caja cuesta precio × m² por caja.
-  const isFloor = FLOOR_CATEGORIES.includes(item.categoria);
-  const spec = (label: string) => item.specs.find(([l]) => l === label)?.[1];
-  const areaPerBox = isFloor ? Number(spec("m² por caja") ?? DUMMY_AREA_PER_BOX) : null;
-  const length = spec("Largo") ?? spec("Longitud");
-  const format = isFloor
-    ? (spec("Medidas") ?? (spec("Ancho") && length ? `${spec("Ancho")} x ${length}` : null))
-    : null;
-  const price = round2(unitPrice * (areaPerBox ?? 1));
-  const compareAtPrice = onSale ? round2(DUMMY_PRICE * (areaPerBox ?? 1)) : null;
-  // Existencias de prueba: algunas agotadas y algunas bajas.
-  const stock = item.id % 19 === 0 ? 0 : item.id % 7 === 0 ? 3 : 10 + (item.id % 40);
-
-  // "Nuevo" se calcula con publishedAt (últimos 30 días). El resto se ordena por alta en terza.com
-  // (el id más alto es el más reciente), igual que en terza-sitio.
-  const publishedAt = new Date(
-    item.nuevo ? now - (1 + (item.id % 20)) * DAY : now - (40 + Math.round((MAX_ID - item.id) / 5)) * DAY,
-  );
-
-  const parentIds = section.slug === ownSlug ? [] : [{ id: categoryIds.get(section.slug)! }];
-
-  await db.product.create({
-    data: {
-      name,
-      slug: item.slug,
-      brand: "Terza",
-      status: "ACTIVE",
-      isFeatured: item.nuevo,
-      price,
-      compareAtPrice,
-      format,
-      areaPerBox,
-      attributes: item.filtros,
-      shortDescription: category.intro,
-      description: item.descripcion || category.intro,
-      // La colección se agrega solo si la ficha de terza-sitio no la trae ya.
-      specs: [
-        ...(item.specs.some(([label]) => label === "Colección") ? [] : [{ label: "Colección", value: item.familia }]),
-        ...item.specs.map(([label, value]) => ({ label, value })),
-      ],
-      publishedAt,
-      categories: { connect: [{ id: categoryIds.get(ownSlug)! }, ...parentIds] },
-      images: {
-        create: item.fotos.slice(0, MAX_PHOTOS).map((base, position) => ({
-          url: photo(base),
-          alt: position === 0 ? `${section.children.length ? category.nombre : section.name}: ${name}` : `${name}, foto ${position + 1}`,
-          position,
-        })),
-      },
-      variants: { create: { sku: item.sku, price, compareAtPrice, stock, isDefault: true } },
-    },
-  });
-}
 
 // "PHIFER 4500" → "Phifer 4500", "ARTISAN BO" → "Artisan BO", "BEIGE/PEARL GRAY" → "Beige/Pearl Gray":
 // las siglas cortas y los modelos con números se quedan en mayúsculas.
@@ -440,11 +319,7 @@ async function main() {
   await reset();
   const categoryIds = await seedCategories();
 
-  // Solo los productos de las secciones que vende la tienda; en tandas para no abrir una conexión por producto.
-  const products = catalog.productos.filter((item) => parentOf(item.categoria));
-  for (let i = 0; i < products.length; i += 20) {
-    await Promise.all(products.slice(i, i + 20).map((item) => seedProduct(item, categoryIds)));
-  }
+  // Catálogo de miterza.com: tapetes y persianas (en tandas para no abrir una conexión por producto).
   await Promise.all(rugs.map((row, i) => seedRug(row, i, categoryIds)));
   for (let i = 0; i < blinds.length; i += 20) {
     await Promise.all(blinds.slice(i, i + 20).map((row, j) => seedBlind(row, i + j, categoryIds)));
@@ -460,9 +335,7 @@ async function main() {
               label: section.name,
               category: section.slug,
               children: section.children.map((slug) => ({
-                label:
-                  BLIND_LINES.find((l) => l.slug === slug)?.name ??
-                  catalog.categorias.find((c) => c.slug === slug)!.nombre,
+                label: BLIND_LINES.find((l) => l.slug === slug)!.name,
                 category: slug,
               })),
             })),

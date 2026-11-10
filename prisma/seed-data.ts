@@ -1,21 +1,17 @@
-// Datos para el seed de desarrollo (`npx prisma db seed`).
-// El catálogo (categorías, productos, fichas técnicas y fotos) es el de terza-sitio: ver
-// prisma/data/terza-catalogo.json. Todos los precios son un dummy de $1,000 (DUMMY_PRICE); las existencias son de prueba.
-// Textos institucionales y tutoriales vienen de miterza.com.
+// Datos para el seed (`npx prisma db seed`). El catálogo es el de miterza.com que dio el cliente
+// (prisma/data/*-miterza.tsv y tapetes-medidas.json, fotos en public/tapetes y public/persianas), con
+// precios reales; las existencias y las ofertas son de prueba. Textos y tutoriales vienen de miterza.com.
 
 // Árbol de categorías de la tienda. Igual que miterza.com, la tienda vende solo dos líneas:
 // - Tapetes: el catálogo de miterza.com que dio el cliente (prisma/data/tapetes-miterza.tsv), sin
 //   subcategorías; se filtran por colección.
 // - Persianas: el catálogo de miterza.com que dio el cliente (prisma/data/persianas-miterza.tsv), por
 //   línea (BLIND_LINES).
-// El catálogo de terza-sitio (prisma/data/terza-catalogo.json) ya no aporta productos: una sección sin
-// hijos que coincida con una de sus categorías (`source`) los tomaría de ahí.
 export const SECTIONS: {
   slug: string;
   name: string;
   description: string;
-  source?: string;
-  imageUrl?: string;
+  imageUrl: string;
   children: string[];
 }[] = [
   {
@@ -74,22 +70,11 @@ export const BLIND_LINES: {
 export const BLIND_STOCK = 10;
 export const RUG_STOCK = 10;
 
-// PRECIO DUMMY (MXN): el catálogo de terza-sitio no trae precios. Todos los productos valen $1,000 para
-// que sea evidente que el cliente debe cargar su precio final. Las ofertas de ejemplo se calculan sobre
-// esa misma base (precio anterior $1,000 tachado y el precio con descuento).
-export const DUMMY_PRICE = 1000;
-export const DUMMY_DISCOUNTS = [10, 15, 20]; // % de las ofertas de ejemplo
-
-// Pisos: se venden por caja y su precio dummy ($1,000) es por m². El catálogo solo trae los m² por caja
-// de los pisos híbridos; para los demás se usa DUMMY_AREA_PER_BOX hasta que el cliente dé el dato real.
-export const FLOOR_CATEGORIES = ["piso-vinilico", "pisos-laminados", "pisos-hibridos", "pisos-de-madera"];
-export const DUMMY_AREA_PER_BOX = 2;
+// Porcentajes de las ofertas de ejemplo (provisionales, ver sampleDiscount en seed.ts).
+export const DUMMY_DISCOUNTS = [10, 15, 20];
 
 const OPTIMA_VIDEO = "https://www.youtube.com/watch?v=Gy_H-6jySkM";
 const STYLO_VIDEO = "https://www.youtube.com/watch?v=Ku1VPnL1LvY";
-
-// Tutorial de medidas e instalación por categoría.
-export const INSTALL_VIDEOS: Record<string, string> = {};
 
 export const HERO_BANNERS = [
   {
