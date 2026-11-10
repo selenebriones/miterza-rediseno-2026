@@ -10,21 +10,32 @@ import { useWishlist } from "./use-wishlist";
 type Loaded = { key: string; products: ProductSummary[]; error: boolean };
 
 export function WishlistPage() {
-  const { slugs } = useWishlist();
+  const { slugs, prune } = useWishlist();
   const key = slugs.join(",");
   const [loaded, setLoaded] = useState<Loaded | null>(null);
+  // Cuántos favoritos se quitaron por ya no estar en la tienda (para avisar).
+  const [removed, setRemoved] = useState(0);
 
   useEffect(() => {
     if (!key) return;
     const controller = new AbortController();
     fetch(`/api/products?slugs=${encodeURIComponent(key)}`, { signal: controller.signal })
       .then((res) => (res.ok ? res.json() : Promise.reject(new Error(String(res.status)))))
-      .then((data: { products: ProductSummary[] }) => setLoaded({ key, products: data.products, error: false }))
+      .then((data: { products: ProductSummary[] }) => {
+        const requested = key.split(",");
+        const found = data.products.map((p) => p.slug);
+        const missing = requested.filter((s) => !found.includes(s)).length;
+        setLoaded({ key: requested.filter((s) => found.includes(s)).join(","), products: data.products, error: false });
+        if (missing > 0) {
+          setRemoved((n) => n + missing);
+          prune(requested, found);
+        }
+      })
       .catch((error) => {
         if ((error as Error).name !== "AbortError") setLoaded({ key, products: [], error: true });
       });
     return () => controller.abort();
-  }, [key]);
+  }, [key, prune]);
 
   // Al quitar un favorito de la lista se oculta de inmediato, sin esperar otra consulta.
   const products = (loaded?.products ?? []).filter((p) => slugs.includes(p.slug));
@@ -35,6 +46,14 @@ export function WishlistPage() {
       <h1 className="text-[1.75rem] leading-tight font-bold lg:text-[2.5rem]">
         Favoritos {slugs.length > 0 && <span className="font-normal text-body">({slugs.length})</span>}
       </h1>
+
+      {removed > 0 && (
+        <p role="status" className="mt-5 rounded-card bg-surface px-4 py-3 text-sm text-heading">
+          {removed === 1
+            ? "Quitamos 1 producto de tus favoritos porque ya no está disponible en la tienda."
+            : `Quitamos ${removed} productos de tus favoritos porque ya no están disponibles en la tienda.`}
+        </p>
+      )}
 
       {slugs.length === 0 ? (
         <div className="mt-8 flex flex-col items-center rounded-card bg-surface px-6 py-14 text-center">

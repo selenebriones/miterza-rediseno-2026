@@ -22,5 +22,13 @@ export function useWishlist() {
     [setSlugs],
   );
 
-  return { slugs, count: slugs.length, has, toggle };
+  // Quita los favoritos que se pidieron y ya no existen (p. ej. productos dados de baja del catálogo).
+  // Solo toca los consultados: si mientras tanto se agregó otro, se respeta.
+  const prune = useCallback(
+    (requested: string[], found: string[]) =>
+      setSlugs((current) => current.filter((s) => !requested.includes(s) || found.includes(s))),
+    [setSlugs],
+  );
+
+  return { slugs, count: slugs.length, has, toggle, prune };
 }
