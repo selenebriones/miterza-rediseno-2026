@@ -26,9 +26,39 @@ const initialState: CheckoutState = { status: "idle" };
 
 const ADDRESS_FIELDS: (keyof AddressQuery)[] = ["street", "neighborhood", "postalCode", "city", "state"];
 
-type Customer = { email: string; firstName: string; lastName: string };
+type Customer = { email: string; firstName: string; lastName: string; phone: string };
+export type CheckoutAddress = {
+  id: string;
+  label: string;
+  firstName: string;
+  lastName: string;
+  phone: string;
+  street: string;
+  neighborhood: string;
+  postalCode: string;
+  city: string;
+  state: string;
+  references: string;
+  lat: number | null;
+  lng: number | null;
+  isDefault: boolean;
+};
 
-export function CheckoutForm({ paymentMethods, customer }: { paymentMethods: PaymentMethodOption[]; customer: Customer }) {
+export function CheckoutForm({
+  paymentMethods,
+  customer,
+  addresses = [],
+}: {
+  paymentMethods: PaymentMethodOption[];
+  customer: Customer;
+  addresses?: CheckoutAddress[];
+}) {
+  // Direcciones guardadas: se preselecciona la predeterminada; "other" = capturar una nueva.
+  const [addressChoice, setAddressChoice] = useState<string>(
+    () => addresses.find((a) => a.isDefault)?.id ?? addresses[0]?.id ?? "other",
+  );
+  const chosenAddress = addresses.find((a) => a.id === addressChoice) ?? null;
+  const [saveNewAddress, setSaveNewAddress] = useState(false);
   const { items, subtotal, coupon, hydrated } = useCart();
   const { validating, notices } = useCartValidation();
   const [state, formAction, pending] = useActionState(placeOrder, initialState);
@@ -208,6 +238,29 @@ export function CheckoutForm({ paymentMethods, customer }: { paymentMethods: Pay
             </Section>
 
             <Section number={2} title="Dirección de envío">
+              {addresses.length > 0 && (
+                <AddressPicker addresses={addresses} value={addressChoice} onChange={setAddressChoice} />
+              )}
+              {chosenAddress ? (
+                // Dirección guardada: viaja en campos ocultos con los mismos nombres que los del formulario.
+                <>
+                  <input type="hidden" name="firstName" value={chosenAddress.firstName} />
+                  <input type="hidden" name="lastName" value={chosenAddress.lastName} />
+                  <input type="hidden" name="street" value={chosenAddress.street} />
+                  <input type="hidden" name="neighborhood" value={chosenAddress.neighborhood} />
+                  <input type="hidden" name="postalCode" value={chosenAddress.postalCode} />
+                  <input type="hidden" name="city" value={chosenAddress.city} />
+                  <input type="hidden" name="state" value={chosenAddress.state} />
+                  <input type="hidden" name="references" value={chosenAddress.references} />
+                  {chosenAddress.lat !== null && chosenAddress.lng !== null && (
+                    <>
+                      <input type="hidden" name="lat" value={chosenAddress.lat.toFixed(6)} />
+                      <input type="hidden" name="lng" value={chosenAddress.lng.toFixed(6)} />
+                    </>
+                  )}
+                </>
+              ) : (
+                <>
               <div className="grid gap-5 sm:grid-cols-2">
                 <Field
                   name="firstName"
@@ -274,6 +327,37 @@ export function CheckoutForm({ paymentMethods, customer }: { paymentMethods: Pay
                 error={errors.references}
                 defaultValue={values.references}
               />
+                  {/* Guardar la dirección nueva en la cuenta para la próxima compra. */}
+                  <div className="rounded-card bg-surface p-4">
+                    <label className="flex cursor-pointer items-center gap-3 text-[0.9375rem] font-medium text-heading">
+                      <input
+                        type="checkbox"
+                        name="saveAddress"
+                        checked={saveNewAddress}
+                        onChange={(e) => setSaveNewAddress(e.target.checked)}
+                        className="size-5 accent-brand"
+                      />
+                      Guardar esta dirección en mi cuenta
+                    </label>
+                    {saveNewAddress && (
+                      <div className="mt-3">
+                        <label htmlFor="addressLabel" className="mb-1.5 block text-[0.9375rem] font-medium text-heading">
+                          Nombre de la dirección
+                        </label>
+                        <input
+                          id="addressLabel"
+                          name="addressLabel"
+                          placeholder="Casa, Oficina…"
+                          maxLength={40}
+                          defaultValue={addresses.length === 0 ? "Casa" : ""}
+                          autoComplete="off"
+                          className={inputClass}
+                        />
+                      </div>
+                    )}
+                  </div>
+                </>
+              )}
             </Section>
 
             <Section number={3} title="Pago">
@@ -385,6 +469,70 @@ function Summary({ items, subtotal, coupon }: { items: CartItem[]; subtotal: num
       </ul>
       <OrderTotals subtotal={subtotal} coupon={coupon} className="mt-5 border-t border-black/10 pt-5" />
     </div>
+  );
+}
+
+// Tarjetas con las direcciones guardadas y la opción de capturar otra (una sola a la vez).
+function AddressPicker({
+  addresses,
+  value,
+  onChange,
+}: {
+  addresses: CheckoutAddress[];
+  value: string;
+  onChange: (id: string) => void;
+}) {
+  const cardClass =
+    "flex cursor-pointer gap-3 rounded-card border p-4 transition-colors has-checked:border-brand has-checked:bg-surface has-focus-visible:ring-2 has-focus-visible:ring-brand/25";
+  return (
+    <fieldset>
+      <legend className="mb-3 text-[0.9375rem] font-medium text-heading">¿A dónde enviamos tu pedido?</legend>
+      <div className="grid gap-3 sm:grid-cols-2">
+        {addresses.map((a) => (
+          <label key={a.id} className={cn(cardClass, "border-input")}>
+            <input
+              type="radio"
+              name="addressChoice"
+              checked={value === a.id}
+              onChange={() => onChange(a.id)}
+              className="mt-1 size-5 shrink-0 accent-brand"
+            />
+            <span className="min-w-0 text-sm">
+              <span className="flex flex-wrap items-center gap-2">
+                <span className="font-bold text-heading">{a.label}</span>
+                {a.isDefault && (
+                  <span className="rounded-pill bg-accent px-2 py-0.5 text-[0.6875rem] font-bold text-brand">
+                    Predeterminada
+                  </span>
+                )}
+              </span>
+              <span className="mt-1 block">
+                {a.firstName} {a.lastName}
+              </span>
+              <span className="block">
+                {a.street}, {a.neighborhood}
+              </span>
+              <span className="block">
+                {a.postalCode} {a.city}, {a.state}
+              </span>
+            </span>
+          </label>
+        ))}
+        <label className={cn(cardClass, "items-center border-dashed border-input")}>
+          <input
+            type="radio"
+            name="addressChoice"
+            checked={value === "other"}
+            onChange={() => onChange("other")}
+            className="size-5 shrink-0 accent-brand"
+          />
+          <span className="font-semibold text-brand">Usar otra dirección</span>
+        </label>
+      </div>
+      <Link href="/cuenta/informacion" className="mt-2 inline-block text-sm font-semibold text-brand underline underline-offset-2">
+        Administrar mis direcciones
+      </Link>
+    </fieldset>
   );
 }
 

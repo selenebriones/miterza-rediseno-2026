@@ -33,8 +33,9 @@ export function MobileMenu({ main, secondary, onSearch }: Props) {
       </SheetTrigger>
 
       <SheetContent
-        side="left"
-        className="w-[85%] gap-0 bg-white p-0 data-[side=left]:sm:max-w-sm"
+        // Abre del lado derecho, donde está el botón.
+        side="right"
+        className="w-[85%] gap-0 bg-white p-0 data-[side=right]:sm:max-w-sm"
         onCloseAutoFocus={(event) => {
           if (!openingSearch.current) return;
           event.preventDefault();

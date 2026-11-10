@@ -1,7 +1,10 @@
 "use server";
 
+import { refresh } from "next/cache";
 import { AuthError } from "next-auth";
-import { signIn, signOut } from "@/auth";
+import { signIn, signOut, updateSession } from "@/auth";
+import { normalizePhone } from "@/lib/checkout-validation";
+import { getSession } from "@/lib/session";
 import { db } from "@/lib/db";
 import { hashPassword } from "@/lib/password";
 import { readReturnPath } from "@/lib/return-path";
@@ -92,4 +95,40 @@ export async function requestPasswordReset(_prev: RecoverState, formData: FormDa
 
 export async function customerLogout() {
   await signOut({ redirectTo: "/" });
+}
+
+// --- Mis datos: nombre y teléfono del cliente. El correo es su acceso y no se cambia aquí. ---
+
+export type ProfileFormState = {
+  status?: "saved" | "error";
+  message?: string;
+  fieldErrors?: Partial<Record<"firstName" | "lastName" | "phone", string>>;
+  values?: { firstName: string; lastName: string; phone: string };
+};
+
+export async function updateProfile(_prev: ProfileFormState, formData: FormData): Promise<ProfileFormState> {
+  const session = await getSession();
+  if (!session?.user?.id) return { status: "error", message: "Tu sesión terminó. Inicia sesión de nuevo." };
+
+  const values = {
+    firstName: String(formData.get("firstName") ?? "").trim().slice(0, 60),
+    lastName: String(formData.get("lastName") ?? "").trim().slice(0, 80),
+    phone: String(formData.get("phone") ?? "").trim(),
+  };
+  const fieldErrors: ProfileFormState["fieldErrors"] = {};
+  if (!values.firstName) fieldErrors.firstName = "Escribe tu nombre.";
+  if (!values.lastName) fieldErrors.lastName = "Escribe tu apellido.";
+  const phone = values.phone ? normalizePhone(values.phone) : "";
+  if (values.phone && phone.length !== 10) fieldErrors.phone = "Escribe un teléfono de 10 dígitos.";
+  if (Object.keys(fieldErrors).length > 0) {
+    return { status: "error", message: "Revisa los datos marcados.", fieldErrors, values };
+  }
+
+  const name = `${values.firstName} ${values.lastName}`;
+  // Solo el usuario de la sesión; el correo no se toca.
+  await db.user.update({ where: { id: session.user.id }, data: { name, phone: phone || null } });
+  await updateSession({ user: { name } });
+  // Vuelve a pintar la página (saludo y franja de sesión) con el nombre nuevo.
+  refresh();
+  return { status: "saved", message: "Guardamos tus datos.", values: { ...values, phone } };
 }

@@ -31,11 +31,7 @@ export function HeaderBar({ main, secondary, popularCategories, menuProducts }: 
     <>
       <header data-compact={compact} className="group/header sticky top-0 z-header border-b border-line bg-white">
         <div className="container flex h-16 items-center gap-3 transition-[height] duration-200 lg:h-22 lg:gap-8 lg:group-data-[compact=true]/header:h-[4.5rem]">
-          <div className="-ml-2 lg:hidden">
-            <MobileMenu main={main} secondary={secondary} onSearch={() => setSearchOpen(true)} />
-          </div>
-
-          <Logo tone="color" className="h-8 lg:h-12 lg:group-data-[compact=true]/header:h-10" />
+          <Logo tone="color" className="h-10 lg:h-12 lg:group-data-[compact=true]/header:h-10" />
 
           <div className="hidden h-full lg:block lg:flex-1">
             <DesktopNav items={main} products={menuProducts} />
@@ -79,6 +75,11 @@ export function HeaderBar({ main, secondary, popularCategories, menuProducts }: 
             </Link>
 
             <CartButton />
+
+            {/* Celular y tablet: el menú va al final de los botones, después del carrito. */}
+            <div className="-mr-2 lg:hidden">
+              <MobileMenu main={main} secondary={secondary} onSearch={() => setSearchOpen(true)} />
+            </div>
           </div>
         </div>
       </header>
