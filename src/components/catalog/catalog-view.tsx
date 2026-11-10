@@ -67,7 +67,7 @@ export async function CatalogView({ filters, tree }: { filters: CatalogFilters; 
           <div className="min-w-0">
             <MobileToolbar facets={result.facets} total={result.total} />
 
-            <div className="mt-4 flex items-center justify-between gap-4 lg:mt-0">
+            <div className="mt-4 flex items-center justify-between gap-4 border-b border-black/10 pb-4 lg:mt-0">
               <p aria-live="polite" className="text-sm">
                 <strong className="text-heading">{result.total}</strong> {result.total === 1 ? "producto" : "productos"}
                 {result.pageCount > 1 && (

@@ -4,10 +4,13 @@ import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import {
   CheckIcon,
+  ChevronDownIcon,
   ExternalLinkIcon,
+  InfoIcon,
   MinusIcon,
   PhoneIcon,
   PlusIcon,
+  RulerIcon,
   RotateCcwIcon,
   ShieldCheckIcon,
   TruckIcon,
@@ -16,10 +19,12 @@ import { useCart } from "@/components/cart/cart-provider";
 import { MAX_PER_LINE } from "@/lib/cart-types";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { useScrolledPast } from "@/hooks/use-scrolled-past";
+import { blindSizeLabel, blindSizeLimits, type BlindSize } from "@/lib/blind-size";
 import type { ProductDetail, ProductVariant } from "@/lib/products";
-import { formatPrice, storeConfig } from "@/lib/store-config";
+import { formatPrice, formatProductPrice, storeConfig } from "@/lib/store-config";
 import { boxLabel, formatArea, pricePerArea } from "@/lib/unit-price";
 import { cn } from "@/lib/utils";
+import { BlindSizeDialog } from "./blind-size-dialog";
 import { BoxCalculator } from "./box-calculator";
 import { ProductGallery } from "./product-gallery";
 import { VariantSelector } from "./variant-selector";
@@ -31,6 +36,12 @@ export function ProductMain({ product }: { product: ProductDetail }) {
     () => product.variants.find((v) => v.stock > 0) ?? product.variants[0],
   );
   const [quantity, setQuantity] = useState(1);
+  // Persianas: medida a la medida (alto, ancho y lado de cadena) que se captura en "Personaliza tu producto".
+  const sizeLimits = blindSizeLimits(product.features);
+  const [size, setSize] = useState<BlindSize | null>(null);
+  const [sizeOpen, setSizeOpen] = useState(false);
+  // Si el formulario se abrió al intentar comprar sin medidas, al guardar se agrega al carrito.
+  const [pendingAdd, setPendingAdd] = useState<number | null>(null);
   const [added, setAdded] = useState(false);
   // Cajas agregadas con la calculadora en esta visita (se suman si se usa varias veces).
   const [calculatorBoxes, setCalculatorBoxes] = useState(0);
@@ -48,6 +59,13 @@ export function ProductMain({ product }: { product: ProductDetail }) {
       ? Math.round((1 - variant.price / variant.compareAtPrice) * 100)
       : null;
   const variantLabel = Object.values(variant.options).join(" · ");
+  // Una sola opción de texto (la medida de los tapetes): selector desplegable a la derecha del precio.
+  // Con colores (muestras) o varias opciones se usan los botones de VariantSelector.
+  const dropdownOption =
+    product.options.length === 1 && !product.options[0].values.some((v) => v.swatch) ? product.options[0] : null;
+  // Igual que en miterza.com, los tapetes muestran el SKU del color (el de su ficha) aunque cambie la
+  // medida; el SKU de cada medida se sigue guardando en el carrito y en el pedido.
+  const shownSku = (dropdownOption && product.features.find((f) => f.label === "SKU")?.value) || variant.sku;
   // Pisos: el precio de la variante es por caja; se muestra por m² y debajo el costo de la caja.
   const area = product.areaPerBox;
   const shownPrice = pricePerArea(variant.price, area);
@@ -69,16 +87,24 @@ export function ProductMain({ product }: { product: ProductDetail }) {
     setQuantity((q) => Math.max(1, Math.min(q, Math.min(next.stock, MAX_PER_ORDER))));
   }
 
-  function addToCart(count = quantity) {
+  function addToCart(count = quantity, chosenSize = size) {
     if (!inStock) return;
+    if (sizeLimits && !chosenSize) {
+      setPendingAdd(count);
+      setSizeOpen(true);
+      return;
+    }
     addItem(
       {
         variantId: variant.id,
         slug: product.slug,
         name: product.name,
-        variantLabel: (area ? boxLabel(area) : variantLabel) || undefined,
+        variantLabel: chosenSize
+          ? blindSizeLabel(chosenSize)
+          : (area ? boxLabel(area) : variantLabel) || undefined,
         price: variant.price,
         imageUrl: product.images[0]?.url ?? null,
+        size: chosenSize ?? undefined,
       },
       count,
     );
@@ -101,20 +127,26 @@ export function ProductMain({ product }: { product: ProductDetail }) {
             href={`/productos?categoria=${product.lineSlug}`}
             className="text-xs font-semibold tracking-wide text-muted-foreground uppercase hover:text-brand"
           >
-            {product.category} · {product.line}
+            {product.line === product.category ? product.category : `${product.category} · ${product.line}`}
           </Link>
           <h1 className="mt-1.5 text-2xl leading-tight font-bold text-balance lg:text-[2rem]">{product.name}</h1>
           {product.format && <p className="mt-2 text-[0.9375rem]">Formato: {product.format}</p>}
           <p className="mt-1 border-b border-line pb-4 text-sm text-muted-foreground">
-            SKU <span className="ml-1.5 tracking-wide">{variant.sku}</span>
+            SKU <span className="ml-1.5 tracking-wide">{shownSku}</span>
           </p>
 
           {/* Precio a la izquierda; en pisos, la calculadora de cajas arriba a la derecha. */}
           <div className="mt-4 flex items-start justify-between gap-4">
             <div className="min-w-0">
               <div aria-live="polite" className="flex flex-wrap items-center gap-x-3 gap-y-1">
-                <span className="text-[1.75rem] font-bold text-heading transition-all">
-                  {formatPrice(shownPrice)}
+                <span
+                  className={
+                    shownPrice > 0
+                      ? "text-[1.75rem] font-bold text-heading transition-all"
+                      : "text-lg font-semibold text-muted-foreground"
+                  }
+                >
+                  {formatProductPrice(shownPrice)}
                   {unit}
                   {area && <span className="sr-only"> por metro cuadrado</span>}
                 </span>
@@ -130,12 +162,61 @@ export function ProductMain({ product }: { product: ProductDetail }) {
                   </>
                 )}
               </div>
+              {product.options.length > 0 && <p className="mt-1 text-sm">Precio para: {variantLabel}</p>}
+              {size && <p className="mt-1 text-sm font-semibold text-brand">{blindSizeLabel(size)}</p>}
+              {/* Sin medidas todavía: invitación a capturarlas (abre el mismo formulario que el ícono). */}
+              {sizeLimits && !size && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setPendingAdd(null);
+                    setSizeOpen(true);
+                  }}
+                  aria-haspopup="dialog"
+                  className="mt-1 inline-flex items-center gap-1.5 text-sm font-semibold text-brand underline-offset-4 hover:underline"
+                >
+                  <RulerIcon className="size-4" aria-hidden="true" />
+                  Personaliza con tus medidas
+                </button>
+              )}
               {area && (
                 <p className="mt-1.5 text-[0.9375rem] font-semibold text-heading">
                   {formatArea(area)} m² x caja: <span className="ml-1">{formatPrice(variant.price)}</span>
                 </p>
               )}
             </div>
+            {dropdownOption && (
+              <OptionDropdown
+                option={dropdownOption}
+                variants={product.variants}
+                selected={variant}
+                onSelect={selectVariant}
+              />
+            )}
+            {/* Persianas: medidas a la medida, con el mismo estilo que la calculadora de cajas. */}
+            {sizeLimits && (
+              <button
+                type="button"
+                onClick={() => {
+                  setPendingAdd(null);
+                  setSizeOpen(true);
+                }}
+                aria-haspopup="dialog"
+                aria-describedby="medidas-ayuda"
+                className="group/size relative grid size-16 shrink-0 place-items-center rounded-2xl bg-accent-light text-brand transition-colors hover:bg-accent focus-visible:bg-accent"
+              >
+                <RulerIcon className="size-8" strokeWidth={1.5} aria-hidden="true" />
+                <span className="sr-only">{size ? "Editar medidas" : "Personaliza tu producto"}</span>
+                {/* Leyenda al pasar el cursor o al enfocar con teclado. */}
+                <span
+                  id="medidas-ayuda"
+                  role="tooltip"
+                  className="pointer-events-none absolute top-full right-0 z-10 mt-2 rounded-lg bg-heading px-3 py-2 text-sm font-medium whitespace-nowrap text-white opacity-0 shadow-lg transition-opacity duration-150 group-hover/size:opacity-100 group-focus-visible/size:opacity-100"
+                >
+                  {size ? "Edita las medidas de tu persiana" : "Personaliza tu producto con tus medidas"}
+                </span>
+              </button>
+            )}
             {area && (
               <BoxCalculator
                 areaPerBox={area}
@@ -148,9 +229,8 @@ export function ProductMain({ product }: { product: ProductDetail }) {
               />
             )}
           </div>
-          {product.options.length > 0 && <p className="mt-1 text-sm">Precio para: {variantLabel}</p>}
 
-          {product.options.length > 0 && (
+          {product.options.length > 0 && !dropdownOption && (
             <div className="mt-6 border-t border-line pt-6">
               <VariantSelector
                 options={product.options}
@@ -159,6 +239,27 @@ export function ProductMain({ product }: { product: ProductDetail }) {
                 onSelect={selectVariant}
               />
             </div>
+          )}
+
+          {sizeLimits && (
+            <>
+              <BlindSizeDialog
+                open={sizeOpen}
+                onOpenChange={(open) => {
+                  setSizeOpen(open);
+                  if (!open) setPendingAdd(null);
+                }}
+                limits={sizeLimits}
+                value={size}
+                notice={pendingAdd !== null ? "Agrega las medidas de tu persiana para agregarla al carrito." : undefined}
+                onSave={(next) => {
+                  setSize(next);
+                  setSizeOpen(false);
+                  if (pendingAdd !== null) addToCart(pendingAdd, next);
+                  setPendingAdd(null);
+                }}
+              />
+            </>
           )}
 
           <p aria-live="polite" className="mt-6 flex items-center gap-2 text-[0.9375rem] font-medium">
@@ -301,6 +402,11 @@ export function ProductMain({ product }: { product: ProductDetail }) {
                 </a>
               </span>
             </li>
+            {/* Aviso del cliente (como en miterza.com). */}
+            <li className="flex gap-3">
+              <InfoIcon className="size-5 shrink-0 text-brand" aria-hidden="true" />
+              <span>El tiempo de entrega y la sucursal pueden variar dependiendo de la disponibilidad del producto.</span>
+            </li>
           </ul>
         </div>
       </div>
@@ -316,7 +422,7 @@ export function ProductMain({ product }: { product: ProductDetail }) {
         <div className="flex items-center gap-3">
           <div className="min-w-0 flex-1">
             <p className="text-lg leading-tight font-bold text-heading">
-              {formatPrice(variant.price)}
+              {formatProductPrice(variant.price)}
               {area && <span className="text-xs font-semibold"> /caja</span>}
             </p>
             <p className="truncate text-xs">
@@ -421,5 +527,53 @@ function AddButton({
         "Agregar al carrito"
       )}
     </button>
+  );
+}
+
+// Selector desplegable para una sola opción de texto (p. ej. la medida de los tapetes). Las medidas
+// agotadas se pueden elegir para ver su precio, pero se marcan como agotadas.
+function OptionDropdown({
+  option,
+  variants,
+  selected,
+  onSelect,
+}: {
+  option: ProductDetail["options"][number];
+  variants: ProductVariant[];
+  selected: ProductVariant;
+  onSelect: (variant: ProductVariant) => void;
+}) {
+  const id = `opcion-${option.name.toLowerCase()}`;
+  return (
+    <div className="shrink-0">
+      <label htmlFor={id} className="mb-1 block text-xs text-muted-foreground">
+        {option.name}
+      </label>
+      <div className="relative">
+        <select
+          id={id}
+          value={selected.options[option.name]}
+          onChange={(e) => {
+            const next = variants.find((v) => v.options[option.name] === e.target.value);
+            if (next) onSelect(next);
+          }}
+          className="h-11 w-auto min-w-44 cursor-pointer appearance-none rounded-pill border border-brand bg-white pr-10 pl-4 text-[0.9375rem] text-heading focus-visible:ring-2 focus-visible:ring-brand/25 focus-visible:outline-none"
+        >
+          {option.values.map(({ value }) => {
+            const variant = variants.find((v) => v.options[option.name] === value);
+            return (
+              <option key={value} value={value}>
+                {value}
+                {variant && variant.stock <= 0 ? " (agotada)" : ""}
+              </option>
+            );
+          })}
+        </select>
+        <ChevronDownIcon
+          aria-hidden="true"
+          className="pointer-events-none absolute top-1/2 right-4 size-4 -translate-y-1/2 text-brand"
+        />
+      </div>
+    </div>
   );
 }

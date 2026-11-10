@@ -23,6 +23,13 @@ export const storeConfig = {
 };
 
 // Sin centavos cuando el precio es entero: "$1,890" en lugar de "$1,890.00".
+// Precio de un producto: los que no tienen precio en el catálogo del cliente ($0) se muestran como
+// agotados y sin cifra (no se pueden comprar: el seed les pone existencias en 0).
+export const PRICE_TBD = "Precio por confirmar";
+export function formatProductPrice(value: number) {
+  return value > 0 ? formatPrice(value) : PRICE_TBD;
+}
+
 export function formatPrice(value: number) {
   const fractionDigits = Number.isInteger(value) ? 0 : 2;
   return new Intl.NumberFormat("es-MX", {

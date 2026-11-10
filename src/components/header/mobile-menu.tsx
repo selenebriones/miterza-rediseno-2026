@@ -7,7 +7,7 @@ import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/
 import { Sheet, SheetClose, SheetContent, SheetDescription, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import type { NavItem } from "@/lib/navigation";
 import { storeConfig } from "@/lib/store-config";
-import { cn } from "@/lib/utils";
+import { cn, externalLinkProps } from "@/lib/utils";
 import { Logo } from "./logo";
 
 type Props = {
@@ -96,7 +96,7 @@ export function MobileMenu({ main, secondary, onSearch }: Props) {
                   </AccordionItem>
                 ) : (
                   <SheetClose asChild key={item.id}>
-                    <Link href={item.href} className={rowClass}>
+                    <Link href={item.href} {...externalLinkProps(item.href)} className={rowClass}>
                       {item.isHighlight ? (
                         <span className="rounded-pill bg-accent px-3 py-1 text-brand">{item.label}</span>
                       ) : (
@@ -114,7 +114,7 @@ export function MobileMenu({ main, secondary, onSearch }: Props) {
           <nav aria-label="Información">
             {secondary.map((item) => (
               <SheetClose asChild key={item.id}>
-                <Link href={item.href} className={cn(rowClass, "font-normal")}>
+                <Link href={item.href} {...externalLinkProps(item.href)} className={cn(rowClass, "font-normal")}>
                   {item.label}
                 </Link>
               </SheetClose>

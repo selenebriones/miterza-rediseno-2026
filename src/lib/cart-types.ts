@@ -1,12 +1,13 @@
 // Validación del carrito: tipos y conciliación. Sin dependencias de servidor (lo usa el cliente).
 
+import { blindSizeLabel, type BlindSize } from "./blind-size";
 import { formatPrice } from "./store-config";
 import type { CartItem } from "@/components/cart/cart-provider";
 
 // Tope de piezas (o cajas, en pisos) por producto en una compra.
 export const MAX_PER_LINE = 99;
 
-export type CartLineInput = { variantId: string; quantity: number };
+export type CartLineInput = { variantId: string; quantity: number; size?: BlindSize };
 
 // Estado real de una variante en la base, sin caché.
 export type ValidatedLine = {
@@ -50,7 +51,8 @@ export function reconcileCart(items: CartItem[], lines: ValidatedLine[]) {
       ...item,
       name: line.name,
       slug: line.slug,
-      variantLabel: line.variantLabel ?? undefined,
+      // Persianas: la leyenda es la medida que eligió el cliente, no la de la variante.
+      variantLabel: item.size ? blindSizeLabel(item.size) : (line.variantLabel ?? undefined),
       imageUrl: line.imageUrl,
       price: line.price,
       quantity,

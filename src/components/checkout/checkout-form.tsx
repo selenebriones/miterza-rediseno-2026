@@ -4,7 +4,7 @@ import Link from "next/link";
 import { startTransition, useActionState, useRef, useState } from "react";
 import { AlertCircleIcon, ArrowLeftIcon, ChevronDownIcon, ImageIcon, Loader2Icon, LockIcon } from "lucide-react";
 import { placeOrder, type CheckoutState } from "@/app/(checkout)/checkout/actions";
-import { useCart, type AppliedCoupon, type CartItem } from "@/components/cart/cart-provider";
+import { cartLineKey, useCart, type AppliedCoupon, type CartItem } from "@/components/cart/cart-provider";
 import { OrderTotals } from "@/components/cart/order-totals";
 import { useCartValidation } from "@/components/cart/use-cart-validation";
 import {
@@ -149,7 +149,7 @@ export function CheckoutForm({ paymentMethods, customer }: { paymentMethods: Pay
             <input
               type="hidden"
               name="items"
-              value={JSON.stringify(items.map(({ variantId, quantity }) => ({ variantId, quantity })))}
+              value={JSON.stringify(items.map(({ variantId, quantity, size }) => ({ variantId, quantity, size })))}
             />
             {/* Solo el código: el servidor vuelve a validarlo y decide el monto. */}
             <input type="hidden" name="coupon" value={coupon?.code ?? ""} />
@@ -348,7 +348,7 @@ function Summary({ items, subtotal, coupon }: { items: CartItem[]; subtotal: num
     <div>
       <ul className="mt-4 space-y-4">
         {items.map((item) => (
-          <li key={item.variantId} className="flex items-center gap-3">
+          <li key={cartLineKey(item)} className="flex items-center gap-3">
             <span className="relative grid size-16 shrink-0 place-items-center rounded-lg border border-line bg-white">
               {item.imageUrl ? (
                 // eslint-disable-next-line @next/next/no-img-element

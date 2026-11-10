@@ -9,9 +9,9 @@ import { getHeroBanners, getHomeCategories, getHomeSections, getPromoBanners, ty
 import { getFeaturedProducts } from "@/lib/products";
 
 export const metadata: Metadata = {
-  title: "Mi Terza | Pisos, muros y persianas en línea",
+  title: "Mi Terza | Tapetes y persianas en línea",
   description:
-    "Compra pisos, alfombras, muros, persianas y productos para exterior Terza en línea, con más de 40 años de respaldo y las mejores garantías.",
+    "Compra tapetes y persianas Terza en línea, con más de 40 años de respaldo y las mejores garantías.",
 };
 
 export default async function HomePage() {
@@ -52,7 +52,7 @@ export default async function HomePage() {
 
   return (
     <>
-      <h1 className="sr-only">Mi Terza: pisos, muros y persianas Terza en línea</h1>
+      <h1 className="sr-only">Mi Terza: tapetes y persianas Terza en línea</h1>
       {sections.map((section) => (
         <div key={section.type}>{renderSection(section)}</div>
       ))}

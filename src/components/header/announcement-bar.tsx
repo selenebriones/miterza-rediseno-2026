@@ -5,7 +5,7 @@ import { PhoneIcon, XIcon } from "lucide-react";
 import type { Announcement, NavItem } from "@/lib/navigation";
 import { useLocalStorage } from "@/hooks/use-local-storage";
 import { storeConfig } from "@/lib/store-config";
-import { cn } from "@/lib/utils";
+import { cn, externalLinkProps } from "@/lib/utils";
 
 const DISMISS_KEY = "miterza-announcement-dismissed";
 
@@ -47,7 +47,7 @@ export function AnnouncementBar({ announcement, links }: Props) {
 
         <nav aria-label="Información" className="hidden items-center gap-5 lg:flex">
           {links.map((link) => (
-            <Link key={link.id} href={link.href} className="hover:underline hover:underline-offset-2">
+            <Link key={link.id} href={link.href} {...externalLinkProps(link.href)} className="hover:underline hover:underline-offset-2">
               {link.label}
             </Link>
           ))}

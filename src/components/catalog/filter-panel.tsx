@@ -279,15 +279,18 @@ function PriceFilter({ value, onChange, facets, idPrefix }: Omit<Props, "default
         })}
       </fieldset>
 
-      <form onSubmit={apply} className="mt-3 flex items-end gap-2 px-2">
-        <PriceInput id={`${idPrefix}-min`} label="Mínimo" value={min} onChange={setMin} />
-        <span className="pb-2.5 text-muted-foreground" aria-hidden="true">
-          –
-        </span>
-        <PriceInput id={`${idPrefix}-max`} label="Máximo" value={max} onChange={setMax} />
+      {/* Mínimo y máximo comparten la fila; "Aplicar" va abajo para que los campos tengan espacio. */}
+      <form onSubmit={apply} className="mt-3 px-2">
+        <div className="flex items-end gap-2">
+          <PriceInput id={`${idPrefix}-min`} label="Mínimo" value={min} onChange={setMin} />
+          <span className="pb-2.5 text-muted-foreground" aria-hidden="true">
+            –
+          </span>
+          <PriceInput id={`${idPrefix}-max`} label="Máximo" value={max} onChange={setMax} />
+        </div>
         <button
           type="submit"
-          className="h-10 shrink-0 rounded-lg border border-brand px-3 text-sm font-semibold text-brand transition-colors hover:bg-surface"
+          className="mt-2 h-10 w-full rounded-lg border border-brand px-3 text-sm font-semibold text-brand transition-colors hover:bg-surface"
         >
           Aplicar
         </button>
@@ -313,7 +316,7 @@ function PriceInput({
         {label}
       </label>
       <div className="relative">
-        <span className="pointer-events-none absolute top-1/2 left-2.5 -translate-y-1/2 text-sm text-muted-foreground">
+        <span className="pointer-events-none absolute top-1/2 left-2 -translate-y-1/2 text-sm text-muted-foreground">
           $
         </span>
         <input
@@ -324,7 +327,7 @@ function PriceInput({
           step={50}
           value={value}
           onChange={(e) => onChange(e.target.value)}
-          className="h-10 w-full rounded-lg border border-input bg-white pr-2 pl-6 text-base text-heading"
+          className="h-10 w-full [appearance:textfield] rounded-lg border border-input bg-white pr-1.5 pl-5 text-base text-heading tabular-nums lg:text-sm [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
         />
       </div>
     </div>

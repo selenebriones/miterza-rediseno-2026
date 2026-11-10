@@ -46,7 +46,10 @@ async function ProductContent({ params }: Pick<PageProps<"/productos/[slug]">, "
           items={[
             { label: "Productos", href: "/productos" },
             { label: product.category, href: `/productos?categoria=${categorySlug}` },
-            { label: product.line, href: `/productos?categoria=${product.lineSlug}` },
+            // Una sección sin subcategorías (Tapetes) es a la vez categoría y línea: no se repite.
+            ...(product.line !== product.category
+              ? [{ label: product.line, href: `/productos?categoria=${product.lineSlug}` }]
+              : []),
             { label: product.name },
           ]}
         />
@@ -109,7 +112,8 @@ function ProductJsonLd({ product }: { product: ProductDetail }) {
     image: product.images.map((img) => `${storeConfig.siteUrl}${img.url}`),
     brand: { "@type": "Brand", name: "Terza" },
     category: `${product.category} > ${product.line}`,
-    offers: {
+    // Sin precio (catálogo del cliente en $0) no se publica la oferta.
+    offers: Math.max(...prices) <= 0 ? undefined : {
       "@type": "AggregateOffer",
       priceCurrency: "MXN",
       lowPrice: Math.min(...prices),

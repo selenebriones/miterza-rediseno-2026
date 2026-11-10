@@ -2,6 +2,7 @@
 
 import { createContext, useCallback, useContext, useMemo, useState, useSyncExternalStore } from "react";
 import { useLocalStorage } from "@/hooks/use-local-storage";
+import { blindSizeKey, type BlindSize } from "@/lib/blind-size";
 
 export type CartItem = {
   variantId: string;
@@ -11,7 +12,13 @@ export type CartItem = {
   price: number;
   quantity: number;
   imageUrl: string | null;
+  // Persianas: medida a la medida del cliente (su leyenda va en variantLabel).
+  size?: BlindSize;
 };
+
+// Identificador de la línea: la variante y, en persianas, la medida (otra medida es otra línea).
+export const cartLineKey = (item: Pick<CartItem, "variantId" | "size">) =>
+  item.size ? `${item.variantId}:${blindSizeKey(item.size)}` : item.variantId;
 
 type CartContextValue = {
   items: CartItem[];
@@ -20,8 +27,8 @@ type CartContextValue = {
   isOpen: boolean;
   setOpen: (open: boolean) => void;
   addItem: (item: Omit<CartItem, "quantity">, quantity?: number) => void;
-  updateQuantity: (variantId: string, quantity: number) => void;
-  removeItem: (variantId: string) => void;
+  updateQuantity: (lineKey: string, quantity: number) => void;
+  removeItem: (lineKey: string) => void;
   replaceItems: (items: CartItem[]) => void; // tras validar contra la base
   // Cupón aplicado (código y monto que confirmó el servidor). El pedido lo vuelve a validar.
   coupon: AppliedCoupon | null;
@@ -64,9 +71,10 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
       const quantity = Number.isInteger(rawQuantity) && rawQuantity > 0 ? rawQuantity : 1;
       setItems((stored) => {
         const current = clean(stored);
-        const existing = current.find((i) => i.variantId === item.variantId);
+        const key = cartLineKey(item);
+        const existing = current.find((i) => cartLineKey(i) === key);
         if (existing) {
-          return current.map((i) => (i.variantId === item.variantId ? { ...i, quantity: i.quantity + quantity } : i));
+          return current.map((i) => (cartLineKey(i) === key ? { ...i, quantity: i.quantity + quantity } : i));
         }
         return [...current, { ...item, quantity }];
       });
@@ -77,20 +85,20 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
   );
 
   const updateQuantity = useCallback(
-    (variantId: string, quantity: number) => {
+    (lineKey: string, quantity: number) => {
       setItems((stored) => {
         const current = clean(stored);
         return !Number.isInteger(quantity) || quantity <= 0
-          ? current.filter((i) => i.variantId !== variantId)
-          : current.map((i) => (i.variantId === variantId ? { ...i, quantity } : i));
+          ? current.filter((i) => cartLineKey(i) !== lineKey)
+          : current.map((i) => (cartLineKey(i) === lineKey ? { ...i, quantity } : i));
       });
     },
     [setItems],
   );
 
   const removeItem = useCallback(
-    (variantId: string) => {
-      setItems((current) => current.filter((i) => i.variantId !== variantId));
+    (lineKey: string) => {
+      setItems((current) => current.filter((i) => cartLineKey(i) !== lineKey));
     },
     [setItems],
   );

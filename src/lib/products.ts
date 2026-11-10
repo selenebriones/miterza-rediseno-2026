@@ -1,6 +1,7 @@
 // Lectura de productos desde la base. Las funciones están cacheadas ("use cache") con la
 // etiqueta `catalog`; el panel la invalidará al guardar cambios.
 
+import { blindSizeLimits } from "./blind-size";
 import { cacheLife, cacheTag } from "next/cache";
 import type { Prisma } from "@/generated/prisma/client";
 import { CACHE_TAGS, db } from "./db";
@@ -62,6 +63,7 @@ export const productSummarySelect = {
   publishedAt: true,
   areaPerBox: true,
   attributes: true,
+  specs: true,
   categories: {
     select: { slug: true, name: true, installVideoUrl: true, parent: { select: { slug: true, name: true } } },
   },
@@ -89,7 +91,11 @@ export function toSummary(row: SummaryRow, now = Date.now()): ProductSummary {
     imageUrl: row.images[0]?.url ?? null,
     imageAlt: row.images[0]?.alt ?? "",
     hoverImageUrl: row.images[1]?.url ?? null,
-    singleVariantId: row.variants.length === 1 ? row.variants[0].id : null,
+    // Persianas: no se agregan directo desde la tarjeta porque antes hay que capturar la medida.
+    singleVariantId:
+      row.variants.length === 1 && !blindSizeLimits((row.specs ?? []) as { label: string; value: string }[])
+        ? row.variants[0].id
+        : null,
     stock: row.variants.reduce((sum, v) => sum + v.stock, 0),
     lowStockAlert: row.variants.length ? Math.min(...row.variants.map((v) => v.lowStockAlert)) : 0,
     isNew: row.publishedAt ? now - row.publishedAt.getTime() < NEW_PRODUCT_DAYS * 86_400_000 : false,

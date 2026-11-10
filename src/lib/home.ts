@@ -2,6 +2,7 @@
 // Banner HOME_HERO y HOME_PROMO, y Category con showInHome.
 
 import { cacheLife, cacheTag } from "next/cache";
+import { ATTRIBUTE_FILTERS } from "./catalog-params";
 import { CACHE_TAGS, db } from "./db";
 
 export type HomeSectionType =
@@ -216,11 +217,17 @@ async function discountFor(href: string): Promise<{ discount: number | null; upT
     return { discount: off > 0 ? off : null, upTo: false };
   }
   const category = url.searchParams.get("categoria");
+  // Una colección o línea dentro de la categoría (?coleccion=Terza Kids): solo cuentan sus ofertas.
+  const attributeFilters = ATTRIBUTE_FILTERS.flatMap(({ key }) => {
+    const values = url.searchParams.get(key)?.split(",");
+    return values ? [{ OR: values.map((value) => ({ attributes: { path: [key], equals: value } })) }] : [];
+  });
   const offers = await db.product.findMany({
     where: {
       status: "ACTIVE",
       compareAtPrice: { gt: db.product.fields.price },
       ...(category ? { categories: { some: { slug: { in: category.split(",") } } } } : {}),
+      AND: attributeFilters,
     },
     select: { price: true, compareAtPrice: true },
   });

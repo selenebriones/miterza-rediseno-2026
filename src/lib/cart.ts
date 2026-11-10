@@ -2,6 +2,7 @@
 // y los precios tienen que ser los actuales al validar el carrito o crear el pedido.
 
 import type { Prisma } from "@/generated/prisma/client";
+import { blindSizeKey, parseBlindSize } from "./blind-size";
 import { MAX_PER_LINE, type CartLineInput, type ValidatedLine } from "./cart-types";
 import { db } from "./db";
 
@@ -16,6 +17,7 @@ export const variantForCartSelect = {
       name: true,
       slug: true,
       status: true,
+      specs: true, // persianas: límites de ancho y alto para validar la medida
       images: { orderBy: { position: "asc" }, take: 1, select: { url: true } },
     },
   },
@@ -43,17 +45,22 @@ export function toValidatedLine(variant: VariantForCart): ValidatedLine {
   };
 }
 
-// Normaliza lo que manda el navegador: ids únicos, cantidades enteras entre 1 y MAX_PER_LINE, máximo 50 líneas.
+// Normaliza lo que manda el navegador: una línea por variante y medida (persianas), cantidades enteras
+// entre 1 y MAX_PER_LINE, máximo 50 líneas. La medida se valida contra el producto al crear el pedido.
 export function parseCartLines(raw: unknown): CartLineInput[] | null {
   if (!Array.isArray(raw) || raw.length === 0 || raw.length > 50) return null;
-  const lines = new Map<string, number>();
+  const lines = new Map<string, CartLineInput>();
   for (const entry of raw) {
     const variantId = typeof entry?.variantId === "string" ? entry.variantId.slice(0, 40) : "";
     const quantity = Number(entry?.quantity);
     if (!variantId || !Number.isInteger(quantity) || quantity < 1 || quantity > MAX_PER_LINE) return null;
-    lines.set(variantId, (lines.get(variantId) ?? 0) + quantity);
+    const size = entry?.size == null ? undefined : parseBlindSize(entry.size);
+    if (size === null) return null;
+    const key = `${variantId}:${blindSizeKey(size)}`;
+    const current = lines.get(key);
+    lines.set(key, { variantId, size, quantity: Math.min((current?.quantity ?? 0) + quantity, MAX_PER_LINE) });
   }
-  return [...lines].map(([variantId, quantity]) => ({ variantId, quantity: Math.min(quantity, MAX_PER_LINE) }));
+  return [...lines.values()];
 }
 
 export async function validateCartLines(lines: CartLineInput[]): Promise<ValidatedLine[]> {

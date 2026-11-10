@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { externalLinkProps } from "@/lib/utils";
 import { MailIcon, PhoneIcon } from "lucide-react";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { Logo } from "@/components/header/logo";
@@ -76,7 +77,7 @@ export async function SiteFooter() {
                   <ul>
                     {group.items.map((item) => (
                       <li key={item.id}>
-                        <Link href={item.href} className={linkClass}>
+                        <Link href={item.href} {...externalLinkProps(item.href)} className={linkClass}>
                           {item.label}
                         </Link>
                       </li>
@@ -95,7 +96,7 @@ export async function SiteFooter() {
                 <ul className="mt-4">
                   {group.items.map((item) => (
                     <li key={item.id}>
-                      <Link href={item.href} className={linkClass}>
+                      <Link href={item.href} {...externalLinkProps(item.href)} className={linkClass}>
                         {item.label}
                       </Link>
                     </li>

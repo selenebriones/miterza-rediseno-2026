@@ -1,5 +1,6 @@
 "use client";
 
+import { blindSizeLimits } from "@/lib/blind-size";
 import Image from "next/image";
 import Link from "next/link";
 import { useEffect, useState } from "react";
@@ -7,7 +8,7 @@ import { AlertCircleIcon, ImageIcon, Loader2Icon } from "lucide-react";
 import { useCart } from "@/components/cart/cart-provider";
 import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import type { ProductDetail, ProductVariant } from "@/lib/products";
-import { formatPrice } from "@/lib/store-config";
+import { formatPrice, formatProductPrice } from "@/lib/store-config";
 import { boxLabel, formatArea, pricePerArea } from "@/lib/unit-price";
 import { cn } from "@/lib/utils";
 import { VariantSelector } from "./variant-selector";
@@ -66,6 +67,8 @@ function QuickViewContent({ product, onDone }: { product: ProductDetail; onDone:
       : null;
   const label = Object.values(variant.options).join(" · ");
   const area = product.areaPerBox;
+  // Persianas: la medida se captura en la ficha, así que desde aquí se lleva a ella.
+  const needsSize = blindSizeLimits(product.features) !== null;
 
   function add() {
     addItem({
@@ -106,7 +109,7 @@ function QuickViewContent({ product, onDone }: { product: ProductDetail; onDone:
 
         <div aria-live="polite" className="mt-3 flex flex-wrap items-baseline gap-x-3">
           <span className="text-2xl font-bold text-heading">
-            {formatPrice(pricePerArea(variant.price, area))}
+            {formatProductPrice(pricePerArea(variant.price, area))}
             {area && <span className="text-sm">/m²</span>}
           </span>
           {discount && variant.compareAtPrice && (
@@ -155,14 +158,24 @@ function QuickViewContent({ product, onDone }: { product: ProductDetail; onDone:
         </p>
 
         <div className="mt-auto pt-5">
-          <button
-            type="button"
-            onClick={add}
-            disabled={!inStock}
-            className="inline-flex h-12 w-full items-center justify-center gap-2 rounded-pill bg-brand font-semibold text-white transition-colors hover:bg-accent hover:text-brand disabled:bg-line disabled:text-muted-foreground"
-          >
-            {inStock ? "Agregar al carrito" : "Agotado"}
-          </button>
+          {needsSize && inStock ? (
+            <Link
+              href={`/productos/${product.slug}`}
+              onClick={onDone}
+              className="inline-flex h-12 w-full items-center justify-center gap-2 rounded-pill bg-brand font-semibold text-white transition-colors hover:bg-accent hover:text-brand"
+            >
+              Agregar medidas
+            </Link>
+          ) : (
+            <button
+              type="button"
+              onClick={add}
+              disabled={!inStock}
+              className="inline-flex h-12 w-full items-center justify-center gap-2 rounded-pill bg-brand font-semibold text-white transition-colors hover:bg-accent hover:text-brand disabled:bg-line disabled:text-muted-foreground"
+            >
+              {inStock ? "Agregar al carrito" : "Agotado"}
+            </button>
+          )}
           <Link
             href={`/productos/${product.slug}`}
             onClick={onDone}

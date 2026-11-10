@@ -117,7 +117,7 @@ export function SearchBox({ onNavigate, popularCategories }: Props) {
           autoFocus
           autoComplete="off"
           enterKeyHint="search"
-          placeholder="Buscar pisos, persianas, colecciones…"
+          placeholder="Buscar tapetes, persianas, colecciones…"
           aria-label="Buscar productos"
           role="combobox"
           aria-expanded={options.length > 0}

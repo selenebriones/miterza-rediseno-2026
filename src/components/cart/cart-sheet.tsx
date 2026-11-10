@@ -4,7 +4,7 @@ import Link from "next/link";
 import { ImageIcon, MinusIcon, PlusIcon, ShoppingBagIcon, Trash2Icon } from "lucide-react";
 import { Sheet, SheetClose, SheetContent, SheetFooter, SheetHeader, SheetTitle } from "@/components/ui/sheet";
 import { formatPrice } from "@/lib/store-config";
-import { useCart } from "./cart-provider";
+import { cartLineKey, useCart } from "./cart-provider";
 import { FreeShippingProgress } from "./free-shipping-progress";
 
 // Mini carrito lateral: revisar y pasar a pagar sin salir de la página actual.
@@ -26,7 +26,7 @@ export function CartSheet() {
               <ShoppingBagIcon className="size-9 text-brand" aria-hidden="true" />
             </span>
             <p className="text-lg font-semibold text-heading">Tu carrito está vacío</p>
-            <p className="text-sm">Explora nuestros pisos, muros y persianas y encuentra el ideal para tu espacio.</p>
+            <p className="text-sm">Explora nuestros tapetes y persianas y encuentra el ideal para tu espacio.</p>
             <SheetClose asChild>
               <Link
                 href="/productos"
@@ -42,7 +42,7 @@ export function CartSheet() {
 
             <ul className="flex-1 divide-y divide-line overflow-y-auto px-5">
               {items.map((item) => (
-                <li key={item.variantId} className="flex gap-3 py-4">
+                <li key={cartLineKey(item)} className="flex gap-3 py-4">
                   <span className="grid size-20 shrink-0 place-items-center overflow-hidden rounded-lg bg-surface">
                     {item.imageUrl ? (
                       // eslint-disable-next-line @next/next/no-img-element
@@ -63,7 +63,7 @@ export function CartSheet() {
                         <button
                           type="button"
                           aria-label={`Quitar una pieza de ${item.name}`}
-                          onClick={() => updateQuantity(item.variantId, item.quantity - 1)}
+                          onClick={() => updateQuantity(cartLineKey(item), item.quantity - 1)}
                           disabled={item.quantity <= 1}
                           className="grid size-10 place-items-center rounded-full text-brand hover:bg-surface disabled:text-muted-foreground disabled:hover:bg-transparent"
                         >
@@ -75,7 +75,7 @@ export function CartSheet() {
                         <button
                           type="button"
                           aria-label={`Agregar una pieza de ${item.name}`}
-                          onClick={() => updateQuantity(item.variantId, item.quantity + 1)}
+                          onClick={() => updateQuantity(cartLineKey(item), item.quantity + 1)}
                           className="grid size-10 place-items-center rounded-full text-brand hover:bg-surface"
                         >
                           <PlusIcon className="size-4" aria-hidden="true" />
@@ -87,7 +87,7 @@ export function CartSheet() {
                   <button
                     type="button"
                     aria-label={`Eliminar ${item.name} del carrito`}
-                    onClick={() => removeItem(item.variantId)}
+                    onClick={() => removeItem(cartLineKey(item))}
                     className="-mt-2 -mr-2 grid size-10 shrink-0 place-items-center rounded-full text-muted-foreground hover:bg-muted hover:text-destructive"
                   >
                     <Trash2Icon className="size-4" aria-hidden="true" />

@@ -6,7 +6,7 @@ import { usePathname } from "next/navigation";
 import { useRef, useState } from "react";
 import { ArrowRightIcon, ChevronDownIcon, ChevronRightIcon, ImageIcon } from "lucide-react";
 import type { MenuProduct, NavItem } from "@/lib/navigation";
-import { formatPrice } from "@/lib/store-config";
+import { formatProductPrice } from "@/lib/store-config";
 import { pricePerArea } from "@/lib/unit-price";
 import { cn } from "@/lib/utils";
 
@@ -194,7 +194,7 @@ function MegaPanel({
                     </span>
                     <span className="mt-0.5 block text-sm">
                       {product.hasPriceRange && "Desde "}
-                      {formatPrice(pricePerArea(product.price, product.areaPerBox))}
+                      {formatProductPrice(pricePerArea(product.price, product.areaPerBox))}
                       {product.areaPerBox && "/m²"}
                     </span>
                   </Link>

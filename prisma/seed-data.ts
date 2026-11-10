@@ -3,36 +3,76 @@
 // prisma/data/terza-catalogo.json. Todos los precios son un dummy de $1,000 (DUMMY_PRICE); las existencias son de prueba.
 // Textos institucionales y tutoriales vienen de miterza.com.
 
-// Árbol de categorías de la tienda. Cada sección del menú agrupa categorías del catálogo de terza-sitio
-// (prisma/data/terza-catalogo.json); Accesorios es una sola categoría. Igual que el menú de terza-sitio,
-// las alfombras van dentro de Pisos.
-export const SECTIONS: { slug: string; name: string; description: string; children: string[] }[] = [
+// Árbol de categorías de la tienda. Igual que miterza.com, la tienda vende solo dos líneas:
+// - Tapetes: el catálogo de miterza.com que dio el cliente (prisma/data/tapetes-miterza.tsv), sin
+//   subcategorías; se filtran por colección.
+// - Persianas: el catálogo de miterza.com que dio el cliente (prisma/data/persianas-miterza.tsv), por
+//   línea (BLIND_LINES).
+// El catálogo de terza-sitio (prisma/data/terza-catalogo.json) ya no aporta productos: una sección sin
+// hijos que coincida con una de sus categorías (`source`) los tomaría de ahí.
+export const SECTIONS: {
+  slug: string;
+  name: string;
+  description: string;
+  source?: string;
+  imageUrl?: string;
+  children: string[];
+}[] = [
   {
-    slug: "pisos",
-    name: "Pisos",
-    description: "Pisos vinílicos, laminados, híbridos, de madera y alfombras para cada espacio.",
-    children: ["piso-vinilico", "pisos-laminados", "pisos-hibridos", "pisos-de-madera", "alfombras"],
-  },
-  {
-    slug: "muros",
-    name: "Muros",
-    description: "Lambrín, paneles, piedra flexible y follaje artificial para transformar tus muros.",
-    children: ["paneles", "flexiroc", "muros-verdes"],
+    slug: "tapetes",
+    name: "Tapetes",
+    description: "Calidez, confort y mejor acústica para residencias, oficinas y hoteles.",
+    imageUrl: "/home/cat-tapetes.webp",
+    children: [],
   },
   {
     slug: "persianas",
     name: "Persianas",
     description: "Control de luz y privacidad a la medida de tus ventanas.",
-    children: ["persianas-enrollables", "persianas-de-madera"],
+    imageUrl: "/home/cat-persianas.webp",
+    children: ["persianas-optima", "persianas-select", "persianas-stylo"],
+  },
+];
+
+// Líneas de persianas de miterza.com: cada una es una subcategoría de Persianas. `line` es el valor de la
+// columna "linea" del catálogo. Descripciones provisionales: confirmar con el cliente.
+export const BLIND_LINES: {
+  slug: string;
+  line: string;
+  name: string;
+  description: string;
+  imageUrl: string;
+  installVideoUrl: string;
+}[] = [
+  {
+    slug: "persianas-optima",
+    line: "OPTIMA",
+    name: "Persianas Optima",
+    description: "Persianas enrollables blackout, translúcidas y screen para controlar la luz en cada espacio.",
+    imageUrl: "/home/hero-persianas.webp",
+    installVideoUrl: "https://www.youtube.com/watch?v=Gy_H-6jySkM",
   },
   {
-    slug: "exterior",
-    name: "Exterior",
-    description: "Deck, fachadas y pasto sintético que resisten sol y lluvia.",
-    children: ["pisos-deck", "pasto-sintetico"],
+    slug: "persianas-select",
+    line: "SELECT",
+    name: "Persianas Select",
+    description: "Telas enrollables de mayor desempeño: blackout laminado y screen de fibra de vidrio.",
+    imageUrl: "/persianas/t24-selec-view5-27502-11.webp",
+    installVideoUrl: "https://www.youtube.com/watch?v=Gy_H-6jySkM",
   },
-  { slug: "accesorios", name: "Accesorios", description: "", children: [] },
+  {
+    slug: "persianas-stylo",
+    line: "STYLO",
+    name: "Persianas Stylo",
+    description: "Persianas de doble tela que alternan franjas para regular la luz y la privacidad.",
+    imageUrl: "/home/cat-persianas.webp",
+    installVideoUrl: "https://www.youtube.com/watch?v=Ku1VPnL1LvY",
+  },
 ];
+
+// Existencias de prueba para las persianas "En existencia" (el catálogo no trae cantidades).
+export const BLIND_STOCK = 10;
+export const RUG_STOCK = 10;
 
 // PRECIO DUMMY (MXN): el catálogo de terza-sitio no trae precios. Todos los productos valen $1,000 para
 // que sea evidente que el cliente debe cargar su precio final. Las ofertas de ejemplo se calculan sobre
@@ -49,16 +89,14 @@ const OPTIMA_VIDEO = "https://www.youtube.com/watch?v=Gy_H-6jySkM";
 const STYLO_VIDEO = "https://www.youtube.com/watch?v=Ku1VPnL1LvY";
 
 // Tutorial de medidas e instalación por categoría.
-export const INSTALL_VIDEOS: Record<string, string> = {
-  "persianas-enrollables": OPTIMA_VIDEO,
-};
+export const INSTALL_VIDEOS: Record<string, string> = {};
 
 export const HERO_BANNERS = [
   {
     title: "Calidez y confort para cada espacio",
-    subtitle: "Alfombras que dan calidez, confort y mejor acústica a residencias, oficinas y hoteles.",
-    ctaLabel: "Ver alfombras",
-    ctaUrl: "/productos?categoria=alfombras",
+    subtitle: "Tapetes que dan calidez, confort y mejor acústica a residencias, oficinas y hoteles.",
+    ctaLabel: "Ver tapetes",
+    ctaUrl: "/productos?categoria=tapetes",
     imageDesktop: "/home/hero-kids.webp",
     imageMobile: "/home/hero-kids-mobile.webp",
     imageAlt: "Bebé de pie junto a su cuna sobre un tapete rosa de pelo suave",
@@ -80,26 +118,26 @@ export const HERO_BANNERS = [
 // enlaza a un producto (/productos/<slug>) o a una categoría; el % de ahorro se calcula de sus ofertas.
 export const PROMO_BANNERS = [
   {
-    title: "Pisos de madera",
-    ctaUrl: "/productos?categoria=pisos-de-madera&ofertas=1",
-    imageDesktop: "/catalogo/t36-34592-200207-b.webp",
-    imageAlt: "Sala amplia con piso de madera y ventanal",
+    title: "Tapetes",
+    ctaUrl: "/productos?categoria=tapetes",
+    imageDesktop: "/home/cat-tapetes.webp",
+    imageAlt: "Tapete claro junto a una banca de madera en un recibidor",
   },
   {
-    title: "Lambrín y paneles",
-    ctaUrl: "/productos?categoria=paneles&ofertas=1",
-    imageDesktop: "/catalogo/t15-pvcms-063y9-mineral-gray.webp",
-    imageAlt: "Sala con panel de mármol y lambrín de madera",
+    title: "Terza Kids",
+    ctaUrl: "/productos?categoria=tapetes&coleccion=Terza%20Kids",
+    imageDesktop: "/home/cat-kids.webp",
+    imageAlt: "Bebé de pie sobre un tapete rosa de pelo suave",
   },
   {
-    title: "Flexiroc Caliza Blanca",
-    ctaUrl: "/productos/t15-fr026-tgg107",
-    imageDesktop: "/catalogo/t15-fr026-pt205-2.webp",
-    imageAlt: "Muro recubierto con piedra flexible en una sala",
+    title: "Persianas Stylo",
+    ctaUrl: "/productos?categoria=persianas-stylo",
+    imageDesktop: "/home/cat-persianas.webp",
+    imageAlt: "Persiana de doble tela con franjas grises en una ventana",
   },
   {
-    title: "Persianas",
-    ctaUrl: "/productos?categoria=persianas&ofertas=1",
+    title: "Persianas Optima",
+    ctaUrl: "/productos?categoria=persianas-optima",
     imageDesktop: "/home/promo-persianas.webp",
     imageAlt: "Persona ajustando una persiana enrollable en una ventana",
   },
@@ -141,12 +179,12 @@ export const HOME_SECTIONS = [
   {
     type: "INSTALL_GUIDE",
     title: "Mide e instala tus persianas paso a paso",
-    subtitle: "Te mostramos cómo tomar medidas y colocarlas tú mismo, sin herramientas especiales.",
+    subtitle: null,
     // Banda de ayuda: guía a la izquierda (lima) y preguntas frecuentes a la derecha (blanco).
     settings: {
       eyebrow: "Guías | Instalación",
-      imageUrl: "/home/hero-persianas.webp",
-      imageAlt: "Hombre trabajando junto a una ventana con persiana enrollable",
+      imageUrl: "/home/guia-instalacion.webp",
+      imageAlt: "Instalador de Terza Persianas colocando una persiana enrollable en una ventana",
       tutorials: [
         { title: "Persianas enrollables", lines: "Líneas Optima y Select", videoUrl: OPTIMA_VIDEO },
         { title: "Persianas de doble tela", lines: "Línea Stylo", videoUrl: STYLO_VIDEO },
@@ -158,8 +196,8 @@ export const HOME_SECTIONS = [
         text: "Medidas, envíos, formas de pago, instalación y garantías: encuentra respuestas rápidas antes de hacer tu pedido.",
         ctaLabel: "Ver preguntas frecuentes",
         ctaUrl: "/preguntas-frecuentes",
-        imageUrl: "/catalogo/t06-40101-00013-b.webp",
-        imageAlt: "Sala con piso de madera, sofá y ventanal",
+        imageUrl: "/home/faq-terza.webp",
+        imageAlt: "Colaborador de Terza sonriendo en la planta, con compañeros acomodando material",
       },
     },
   },
@@ -184,7 +222,7 @@ export const MENUS: {
     location: "HEADER_TOP",
     name: "Barra superior",
     items: [
-      { label: "Nosotros", url: "/nosotros" },
+      { label: "Nosotros", url: "https://www.terza.com/quienes-somos" },
       { label: "Preguntas frecuentes", url: "/preguntas-frecuentes" },
     ],
   },
@@ -195,11 +233,8 @@ export const MENUS: {
       {
         label: "Tienda",
         children: [
-          { label: "Pisos", category: "pisos" },
-          { label: "Muros", category: "muros" },
+          { label: "Tapetes", category: "tapetes" },
           { label: "Persianas", category: "persianas" },
-          { label: "Exterior", category: "exterior" },
-          { label: "Accesorios", category: "accesorios" },
           { label: "Ofertas", url: "/productos?ofertas=1" },
           { label: "Todos los productos", url: "/productos" },
         ],
@@ -210,7 +245,7 @@ export const MENUS: {
           { label: "Preguntas frecuentes", url: "/preguntas-frecuentes" },
           { label: "Mi cuenta", url: "/cuenta" },
           { label: "Mis pedidos", url: "/cuenta/pedidos" },
-          { label: "Nosotros", url: "/nosotros" },
+          { label: "Nosotros", url: "https://www.terza.com/quienes-somos" },
         ],
       },
     ],

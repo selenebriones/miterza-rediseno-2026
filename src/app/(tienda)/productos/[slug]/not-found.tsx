@@ -24,10 +24,10 @@ export default function ProductNotFound() {
           Persianas
         </Link>
         <Link
-          href="/productos?categoria=pisos"
+          href="/productos?categoria=tapetes"
           className="inline-flex h-12 items-center rounded-pill border border-brand px-6 font-semibold text-brand hover:bg-surface"
         >
-          Pisos
+          Tapetes
         </Link>
       </div>
     </div>

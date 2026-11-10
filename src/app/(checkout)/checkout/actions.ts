@@ -3,6 +3,7 @@
 import { revalidateTag } from "next/cache";
 import { auth } from "@/auth";
 import { redirect } from "next/navigation";
+import { blindSizeLabel, blindSizeLimits, validateBlindSize } from "@/lib/blind-size";
 import { parseCartLines, variantForCartSelect, variantLabelOf } from "@/lib/cart";
 import {
   CHECKOUT_FIELDS,
@@ -98,12 +99,21 @@ export async function placeOrder(_prev: CheckoutState, formData: FormData): Prom
               : `${variant.stock === 1 ? "Solo queda 1 pieza" : `Solo quedan ${variant.stock} piezas`} de ${variant.product.name}. Ajusta la cantidad en tu carrito.`,
           );
         }
+        // Persianas: la medida es obligatoria y tiene que estar dentro de los límites del producto.
+        const limits = blindSizeLimits((variant.product.specs ?? []) as { label: string; value: string }[]);
+        if (limits) {
+          if (!line.size) {
+            throw new CheckoutError(`Agrega las medidas de ${variant.product.name} en su ficha para continuar.`);
+          }
+          const sizeErrors = Object.values(validateBlindSize(line.size, limits));
+          if (sizeErrors.length > 0) throw new CheckoutError(`${variant.product.name}: ${sizeErrors[0]}`);
+        }
         const unitPrice = Number(variant.price);
         return {
           variantId: variant.id,
           productName: variant.product.name,
           productSlug: variant.product.slug,
-          variantLabel: variantLabelOf(variant),
+          variantLabel: limits && line.size ? blindSizeLabel(line.size) : variantLabelOf(variant),
           sku: variant.sku,
           imageUrl: variant.product.images[0]?.url ?? null,
           unitPrice,

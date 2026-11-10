@@ -2,7 +2,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { ImageIcon } from "lucide-react";
 import type { ProductSummary } from "@/lib/products";
-import { formatPrice } from "@/lib/store-config";
+import { formatPrice, formatProductPrice } from "@/lib/store-config";
 import { lineLogo } from "@/lib/line-logos";
 import { pricePerArea } from "@/lib/unit-price";
 import { cn } from "@/lib/utils";
@@ -88,8 +88,10 @@ export function ProductCard({
     <p className="mt-auto flex flex-wrap items-baseline gap-x-2 pt-1">
       {product.hasPriceRange && <span className="text-xs">Desde</span>}
       {/* Precio final primero; en oferta, el anterior tachado y la píldora del descuento a la derecha. */}
-      <span className="text-lg font-bold text-heading">
-        {formatPrice(pricePerArea(product.price, product.areaPerBox))}
+      <span
+        className={product.price > 0 ? "text-lg font-bold text-heading" : "text-sm font-semibold text-muted-foreground"}
+      >
+        {formatProductPrice(pricePerArea(product.price, product.areaPerBox))}
         {product.areaPerBox && <span className="text-xs font-semibold">/m²</span>}
       </span>
       {discount && product.compareAtPrice && (

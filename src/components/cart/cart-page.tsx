@@ -13,7 +13,7 @@ import {
   ShoppingBagIcon,
   Trash2Icon,
 } from "lucide-react";
-import { useCart, type CartItem } from "./cart-provider";
+import { cartLineKey, useCart, type CartItem } from "./cart-provider";
 import { FreeShippingProgress } from "./free-shipping-progress";
 import { CouponForm } from "./coupon-form";
 import { OrderTotals } from "./order-totals";
@@ -32,7 +32,7 @@ export function CartPage({ categories }: { categories: { slug: string; name: str
 
   // Quitar sin confirmar, con opción de deshacer durante 5 segundos.
   function remove(item: CartItem) {
-    removeItem(item.variantId);
+    removeItem(cartLineKey(item));
     setRemoved(item);
     clearTimeout(undoTimer.current);
     undoTimer.current = setTimeout(() => setRemoved(null), UNDO_MS);
@@ -84,7 +84,7 @@ export function CartPage({ categories }: { categories: { slug: string; name: str
 
             <ul className="mt-4 divide-y divide-line border-y border-line" aria-busy={validating}>
               {items.map((item) => (
-                <li key={item.variantId} className="flex gap-4 py-5">
+                <li key={cartLineKey(item)} className="flex gap-4 py-5">
                   <Link
                     href={`/productos/${item.slug}`}
                     className="grid size-24 shrink-0 place-items-center overflow-hidden rounded-lg bg-surface sm:size-28"
@@ -122,7 +122,7 @@ export function CartPage({ categories }: { categories: { slug: string; name: str
                       <div className="flex items-center rounded-pill border border-input" role="group" aria-label={`Cantidad de ${item.name}`}>
                         <button
                           type="button"
-                          onClick={() => updateQuantity(item.variantId, item.quantity - 1)}
+                          onClick={() => updateQuantity(cartLineKey(item), item.quantity - 1)}
                           disabled={item.quantity <= 1}
                           aria-label="Quitar una pieza"
                           className="grid size-tap place-items-center rounded-full text-brand hover:bg-surface disabled:text-muted-foreground disabled:hover:bg-transparent"
@@ -134,7 +134,7 @@ export function CartPage({ categories }: { categories: { slug: string; name: str
                         </output>
                         <button
                           type="button"
-                          onClick={() => updateQuantity(item.variantId, item.quantity + 1)}
+                          onClick={() => updateQuantity(cartLineKey(item), item.quantity + 1)}
                           disabled={item.quantity >= maxFor(item.variantId)}
                           aria-label="Agregar una pieza"
                           className="grid size-tap place-items-center rounded-full text-brand hover:bg-surface disabled:text-muted-foreground disabled:hover:bg-transparent"
@@ -230,7 +230,7 @@ function EmptyCart({ categories }: { categories: { slug: string; name: string }[
         <ShoppingBagIcon className="size-9 text-brand" aria-hidden="true" />
       </span>
       <h2 className="mt-4 text-xl font-bold">Tu carrito está vacío</h2>
-      <p className="mt-2 max-w-sm">Explora nuestros pisos, muros y persianas y encuentra el ideal para tu espacio.</p>
+      <p className="mt-2 max-w-sm">Explora nuestros tapetes y persianas y encuentra el ideal para tu espacio.</p>
       <Link
         href="/productos"
         className="mt-6 inline-flex h-12 items-center rounded-pill bg-brand px-6 font-semibold text-white transition-colors hover:bg-accent hover:text-brand"

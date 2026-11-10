@@ -22,7 +22,7 @@ export async function generateMetadata({ searchParams }: PageProps<"/productos">
     title: `${title} | Mi Terza`,
     description:
       description ??
-      "Pisos, muros, persianas, exterior y accesorios Terza en línea, con más de 40 años de respaldo y las mejores garantías.",
+      "Tapetes y persianas Terza en línea, con más de 40 años de respaldo y las mejores garantías.",
     robots: indexable ? undefined : { index: false, follow: true },
   };
 }
