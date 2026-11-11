@@ -17,7 +17,7 @@ export default function LoginPage({ searchParams }: PageProps<"/admin/login">) {
           <h1 className="text-2xl font-bold">Panel de administración</h1>
           <p className="mt-1 text-sm">Entra con tu correo y contraseña.</p>
           <div className="mt-6">
-            <Suspense fallback={<LoginForm returnTo="/admin/pedidos" />}>
+            <Suspense fallback={<LoginForm returnTo="/admin" />}>
               <LoginWithReturn searchParams={searchParams} />
             </Suspense>
           </div>
@@ -34,5 +34,5 @@ export default function LoginPage({ searchParams }: PageProps<"/admin/login">) {
 
 async function LoginWithReturn({ searchParams }: Pick<PageProps<"/admin/login">, "searchParams">) {
   const desde = (await searchParams).desde;
-  return <LoginForm returnTo={typeof desde === "string" ? desde : "/admin/pedidos"} />;
+  return <LoginForm returnTo={typeof desde === "string" ? desde : "/admin"} />;
 }

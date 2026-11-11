@@ -10,11 +10,14 @@ export const authConfig = {
   trustHost: true,
   providers: [],
   callbacks: {
-    jwt({ token, user }) {
+    jwt({ token, user, trigger, session }) {
       if (user) {
         token.role = user.role;
         token.permissions = user.permissions;
       }
+      // "Mis datos": al cambiar el nombre, la sesión lo toma sin volver a iniciar sesión. Solo el nombre;
+      // updateSession() se llama únicamente desde el servidor (acción updateProfile).
+      if (trigger === "update" && typeof session?.user?.name === "string") token.name = session.user.name;
       return token;
     },
     session({ session, token }) {

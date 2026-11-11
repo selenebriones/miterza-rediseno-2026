@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { Suspense } from "react";
-import { LogOutIcon, PackageIcon } from "lucide-react";
+import { LogOutIcon, PackageIcon, UserPenIcon } from "lucide-react";
 import { customerLogout } from "@/app/(acceso)/cuenta/actions";
 import { getSession } from "@/lib/session";
 import { db } from "@/lib/db";
@@ -30,13 +30,15 @@ async function Account() {
   if (!session?.user) redirect("/cuenta/ingresar");
   if (session.user.role === "ADMIN") redirect("/admin");
 
+  // Nombre desde la base (no de la sesión) para mostrarlo siempre al día.
+  const user = await db.user.findUnique({ where: { id: session.user.id }, select: { name: true } });
+  const firstName = (user?.name ?? session.user.name ?? "").split(" ")[0];
   const orders = await db.order.findMany({
     where: { userId: session.user.id },
     orderBy: { createdAt: "desc" },
     take: 50,
     select: { id: true, number: true, status: true, total: true, createdAt: true, _count: { select: { items: true } } },
   });
-  const firstName = session.user.name?.split(" ")[0];
   const dateFormat = new Intl.DateTimeFormat("es-MX", { dateStyle: "medium" });
 
   return (
@@ -49,15 +51,24 @@ async function Account() {
           </h1>
           <p className="mt-2">{session.user.email}</p>
         </div>
-        <form action={customerLogout}>
-          <button
-            type="submit"
-            className="inline-flex items-center gap-2 rounded-pill bg-mist px-5 py-2 text-sm font-bold text-brand transition-colors hover:bg-brand hover:text-white"
+        <div className="flex flex-wrap items-center gap-3">
+          <Link
+            href="/cuenta/informacion"
+            className="inline-flex items-center gap-2 rounded-pill bg-brand px-5 py-2 text-sm font-bold text-white transition-colors hover:bg-accent hover:text-brand"
           >
-            <LogOutIcon className="size-4" aria-hidden="true" />
-            Cerrar sesión
-          </button>
-        </form>
+            <UserPenIcon className="size-4" aria-hidden="true" />
+            Actualizar mi información
+          </Link>
+          <form action={customerLogout}>
+            <button
+              type="submit"
+              className="inline-flex items-center gap-2 rounded-pill bg-mist px-5 py-2 text-sm font-bold text-brand transition-colors hover:bg-brand hover:text-white"
+            >
+              <LogOutIcon className="size-4" aria-hidden="true" />
+              Cerrar sesión
+            </button>
+          </form>
+        </div>
       </div>
 
       <section aria-labelledby="mis-pedidos" className="mt-10 rounded-[28px] bg-mist p-6 md:p-8">

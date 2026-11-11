@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { LogOutIcon, UserIcon } from "lucide-react";
 import { customerLogout } from "@/app/(acceso)/cuenta/actions";
+import { db } from "@/lib/db";
 import { getSession } from "@/lib/session";
 
 // Franja superior solo con sesión: quién está dentro, acceso a su cuenta y cerrar sesión.
@@ -8,7 +9,10 @@ import { getSession } from "@/lib/session";
 export async function UserBar() {
   const session = await getSession();
   if (!session?.user) return null;
-  const firstName = session.user.name?.split(" ")[0];
+  // El nombre sale de la base: así se ve al día justo después de editarlo en "Mis datos" (la cookie de
+  // sesión se actualiza en esa misma respuesta y esta lectura todavía tendría la anterior).
+  const user = await db.user.findUnique({ where: { id: session.user.id }, select: { name: true } });
+  const firstName = (user?.name ?? session.user.name)?.split(" ")[0];
   const isAdmin = session.user.role === "ADMIN";
 
   return (

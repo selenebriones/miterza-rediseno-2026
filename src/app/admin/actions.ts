@@ -10,7 +10,7 @@ function safeReturnPath(value: FormDataEntryValue | null) {
   const path = typeof value === "string" ? value : "";
   return path.startsWith("/admin") && !path.startsWith("//") && !path.startsWith("/admin/login")
     ? path
-    : "/admin/pedidos";
+    : "/admin";
 }
 
 export async function login(_prev: LoginState, formData: FormData): Promise<LoginState> {

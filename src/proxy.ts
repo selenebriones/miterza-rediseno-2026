@@ -19,7 +19,7 @@ export default auth((req) => {
     return NextResponse.redirect(url);
   }
   if (isAdmin && isPublic) {
-    return NextResponse.redirect(new URL("/admin/pedidos", req.url));
+    return NextResponse.redirect(new URL("/admin", req.url));
   }
   return NextResponse.next();
 });

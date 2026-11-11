@@ -8,7 +8,7 @@ import { hashPassword, verifyPassword } from "./lib/password";
 // no revela qué correos están registrados.
 const dummyHash = hashPassword("contraseña-que-no-existe");
 
-export const { handlers, auth, signIn, signOut } = NextAuth({
+export const { handlers, auth, signIn, signOut, unstable_update: updateSession } = NextAuth({
   ...authConfig,
   providers: [
     Credentials({

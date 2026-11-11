@@ -3,6 +3,8 @@
 import { revalidateTag } from "next/cache";
 import { auth } from "@/auth";
 import { redirect } from "next/navigation";
+import { parseLocation } from "@/lib/location";
+import { MAX_ADDRESSES } from "@/lib/addresses";
 import { blindSizeLabel, blindSizeLimits, validateBlindSize } from "@/lib/blind-size";
 import { parseCartLines, variantForCartSelect, variantLabelOf } from "@/lib/cart";
 import {
@@ -183,16 +185,37 @@ export async function placeOrder(_prev: CheckoutState, formData: FormData): Prom
   }
 
   // Cambiaron existencias: el catálogo se actualiza en las siguientes visitas.
+  // "Guardar esta dirección en mi cuenta": se agrega a su libreta (si no rebasa el máximo). Si falla,
+  // el pedido ya quedó: no se interrumpe la compra.
+  if (formData.get("saveAddress") === "on") {
+    try {
+      const count = await db.address.count({ where: { userId: session.user.id } });
+      if (count < MAX_ADDRESSES) {
+        const label = String(formData.get("addressLabel") ?? "").trim().slice(0, 40) || `Dirección ${count + 1}`;
+        await db.address.create({
+          data: {
+            userId: session.user.id,
+            label,
+            firstName: values.firstName,
+            lastName: values.lastName,
+            phone: normalizePhone(values.phone),
+            street: values.street,
+            neighborhood: values.neighborhood,
+            postalCode: values.postalCode,
+            city: values.city,
+            state: values.state,
+            references: values.references || null,
+            lat: location?.lat ?? null,
+            lng: location?.lng ?? null,
+            isDefault: count === 0,
+          },
+        });
+      }
+    } catch (error) {
+      console.error("No se pudo guardar la dirección del pedido", error);
+    }
+  }
+
   revalidateTag(CACHE_TAGS.catalog, "max");
   redirect(`/checkout/confirmacion/${orderId}`);
-}
-
-// Coordenadas del pin del checkout: números dentro del recuadro de México, con 6 decimales (~10 cm).
-function parseLocation(rawLat: FormDataEntryValue | null, rawLng: FormDataEntryValue | null) {
-  if (rawLat === null || rawLng === null) return null;
-  const lat = Number(rawLat);
-  const lng = Number(rawLng);
-  const inMexico = lat >= 14 && lat <= 33 && lng >= -119 && lng <= -86;
-  if (!Number.isFinite(lat) || !Number.isFinite(lng) || !inMexico) return null;
-  return { lat: Math.round(lat * 1e6) / 1e6, lng: Math.round(lng * 1e6) / 1e6 };
 }

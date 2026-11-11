@@ -48,6 +48,7 @@ model User {
   sessions      Session[]
   orders        Order[]
   statusChanges OrderStatusChange[]
+  addresses     Address[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -491,6 +492,33 @@ model Order {
 
   @@index([status, createdAt])
   @@index([email])
+}
+
+// Libreta de direcciones del cliente ("Mi información"): puede guardar varias y elegir una al pagar.
+// Una sola es la predeterminada (la que se preselecciona en el checkout).
+model Address {
+  id           String   @id @default(cuid())
+  userId       String
+  label        String   // "Casa", "Oficina"…
+  firstName    String   // quien recibe
+  lastName     String
+  phone        String
+  street       String
+  neighborhood String
+  postalCode   String
+  city         String
+  state        String
+  references   String?
+  lat          Decimal? @db.Decimal(9, 6)
+  lng          Decimal? @db.Decimal(9, 6)
+  isDefault    Boolean  @default(false)
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([userId])
 }
 
 model OrderItem {
