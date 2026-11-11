@@ -4,6 +4,9 @@ import { useActionState, useState } from "react";
 import { AlertCircleIcon, Loader2Icon, PlusIcon, Trash2Icon } from "lucide-react";
 import type { ProductFormState } from "@/app/admin/(panel)/productos/actions";
 import type { ProductForEdit } from "@/lib/admin/products";
+import { ImageThumb } from "@/components/admin/image-thumb";
+import { ImageUploadButton } from "@/components/admin/image-upload-button";
+import { IMAGE_MAX_LABEL } from "@/lib/admin/images";
 import { ATTRIBUTE_FILTERS } from "@/lib/catalog-params";
 import { PRODUCT_STATUSES, PRODUCT_STATUS_META } from "@/lib/product-status";
 
@@ -236,18 +239,28 @@ export function ProductForm({
 
       <RepeatableSection
         title="Imágenes"
-        hint="Por ahora solo rutas locales que empiecen con / (ej. /tapetes/archivo.webp); pide que suban el archivo al repo. Subir la foto desde aquí llega cuando se conecte un servicio de imágenes."
+        hint={`Sube la foto con «Subir foto» (WEBP, JPG, PNG o AVIF, hasta ${IMAGE_MAX_LABEL}) o escribe una ruta local que empiece con /, como /tapetes/archivo.webp. La primera es la foto principal.`}
         rows={images}
+        gridClass="grid-cols-[minmax(0,2fr)_minmax(0,1fr)_auto]"
         onAdd={() => setImages((prev) => [...prev, { url: "", alt: "" }])}
         onRemove={(i) => setImages((prev) => prev.filter((_, idx) => idx !== i))}
         renderRow={(row, i) => (
           <>
-            <input
-              placeholder="URL de la imagen"
-              value={row.url}
-              onChange={(e) => setImages((prev) => prev.map((s, idx) => (idx === i ? { ...s, url: e.target.value } : s)))}
-              className={inputClass}
-            />
+            <div className="flex items-start gap-2">
+              <ImageThumb url={row.url} />
+              <input
+                placeholder="URL de la imagen"
+                aria-label={`URL de la imagen ${i + 1}`}
+                value={row.url}
+                onChange={(e) => setImages((prev) => prev.map((s, idx) => (idx === i ? { ...s, url: e.target.value } : s)))}
+                className={inputClass}
+              />
+              <ImageUploadButton
+                folder="productos"
+                label="Subir foto"
+                onUploaded={(url) => setImages((prev) => prev.map((s, idx) => (idx === i ? { ...s, url } : s)))}
+              />
+            </div>
             <input
               placeholder="Texto alternativo"
               value={row.alt}
@@ -395,9 +408,11 @@ function RepeatableSection<T>({
   onAdd,
   onRemove,
   renderRow,
+  gridClass = "grid-cols-[1fr_1fr_auto]",
 }: {
   title: string;
   hint?: string;
+  gridClass?: string;
   rows: T[];
   onAdd: () => void;
   onRemove: (i: number) => void;
@@ -409,7 +424,7 @@ function RepeatableSection<T>({
       {hint && <p className="text-sm">{hint}</p>}
       <div className="space-y-2">
         {rows.map((row, i) => (
-          <div key={i} className="grid grid-cols-[1fr_1fr_auto] items-center gap-2">
+          <div key={i} className={`grid items-center gap-2 ${gridClass}`}>
             {renderRow(row, i)}
             {rows.length > 1 && (
               <button

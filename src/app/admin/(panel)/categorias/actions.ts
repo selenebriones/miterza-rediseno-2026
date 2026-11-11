@@ -2,6 +2,7 @@
 
 import { redirect } from "next/navigation";
 import { revalidateTag } from "next/cache";
+import { isAllowedImageUrl } from "@/lib/admin/images";
 import { authorize } from "@/lib/admin/session";
 import { CACHE_TAGS, db } from "@/lib/db";
 
@@ -19,6 +20,13 @@ function parseCore(formData: FormData) {
   const parentIdRaw = String(formData.get("parentId") ?? "");
   const parentId = /^[a-z0-9]{20,40}$/.test(parentIdRaw) ? parentIdRaw : null;
   const position = Math.max(0, Math.trunc(Number(formData.get("position")) || 0));
+  const imageUrl = String(formData.get("imageUrl") ?? "").trim().slice(0, 500) || null;
+  // Igual que en productos: una URL externa no permitida rompe la foto en la tienda (next/image).
+  if (imageUrl && !isAllowedImageUrl(imageUrl)) {
+    throw new CategoryFormError(
+      "La imagen debe subirse con el botón «Subir foto» o ser una ruta local (que empiece con /).",
+    );
+  }
 
   return {
     name,
@@ -26,7 +34,7 @@ function parseCore(formData: FormData) {
     parentId,
     position,
     description: String(formData.get("description") ?? "").trim().slice(0, 500) || null,
-    imageUrl: String(formData.get("imageUrl") ?? "").trim().slice(0, 500) || null,
+    imageUrl,
     imageAlt: String(formData.get("imageAlt") ?? "").trim().slice(0, 200) || null,
     installVideoUrl: String(formData.get("installVideoUrl") ?? "").trim().slice(0, 500) || null,
     isVisible: formData.get("isVisible") === "on",

@@ -5,6 +5,7 @@ import { revalidateTag } from "next/cache";
 import type { Prisma } from "@/generated/prisma/client";
 import type { ProductStatus } from "@/generated/prisma/enums";
 import { ATTRIBUTE_FILTERS } from "@/lib/catalog-params";
+import { isAllowedImageUrl } from "@/lib/admin/images";
 import { authorize } from "@/lib/admin/session";
 import { CACHE_TAGS, db } from "@/lib/db";
 import { PRODUCT_STATUSES } from "@/lib/product-status";
@@ -64,11 +65,11 @@ function parseCore(formData: FormData) {
     .filter((img) => img.url)
     .slice(0, 20);
   if (images.length === 0) throw new ProductFormError("Agrega al menos una imagen.");
-  // shortcut: solo rutas locales (/public), hasta que haya un servicio de imágenes (Vercel Blob) conectado.
-  // Una URL externa no listada en `images.remotePatterns` rompe la foto en la tienda (usa next/image).
-  if (images.some((img) => !img.url.startsWith("/"))) {
+  // Solo rutas locales (/public) o fotos subidas a Vercel Blob: una URL externa no listada en
+  // `images.remotePatterns` rompe la foto en la tienda (usa next/image).
+  if (images.some((img) => !isAllowedImageUrl(img.url))) {
     throw new ProductFormError(
-      "Por ahora las imágenes solo pueden ser rutas locales (que empiecen con /), como /tapetes/archivo.webp. Una URL externa puede no verse en la tienda.",
+      "Las imágenes deben subirse con el botón «Subir foto» o ser rutas locales (que empiecen con /), como /tapetes/archivo.webp.",
     );
   }
 

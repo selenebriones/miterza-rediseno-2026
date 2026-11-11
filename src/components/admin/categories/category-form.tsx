@@ -1,8 +1,10 @@
 "use client";
 
-import { useActionState } from "react";
+import { useActionState, useState } from "react";
 import { AlertCircleIcon, Loader2Icon } from "lucide-react";
 import type { CategoryFormState } from "@/app/admin/(panel)/categorias/actions";
+import { ImageThumb } from "@/components/admin/image-thumb";
+import { ImageUploadButton } from "@/components/admin/image-upload-button";
 import type { CategoryRow } from "@/lib/admin/categories";
 
 const inputClass =
@@ -37,6 +39,7 @@ export function CategoryForm({
   action: (prev: CategoryFormState, formData: FormData) => Promise<CategoryFormState>;
 }) {
   const [state, formAction, pending] = useActionState<CategoryFormState, FormData>(action, { status: "idle" });
+  const [imageUrl, setImageUrl] = useState(initial?.imageUrl ?? "");
 
   return (
     <form action={formAction} className="mt-6 max-w-2xl space-y-4 rounded-card bg-white p-5 shadow-card">
@@ -92,13 +95,24 @@ export function CategoryForm({
       </div>
 
       <div className="grid gap-4 sm:grid-cols-2">
-        <div>
+        <div className="sm:col-span-2">
           <label htmlFor="imageUrl" className={labelClass}>
-            URL de la imagen
+            Imagen
           </label>
-          <input id="imageUrl" name="imageUrl" defaultValue={initial?.imageUrl ?? ""} className={inputClass} />
+          <div className="flex items-start gap-2">
+            <ImageThumb url={imageUrl} />
+            <input
+              id="imageUrl"
+              name="imageUrl"
+              value={imageUrl}
+              onChange={(e) => setImageUrl(e.target.value)}
+              placeholder="Sube la foto o escribe una ruta como /home/cat-tapetes.webp"
+              className={inputClass}
+            />
+            <ImageUploadButton folder="categorias" onUploaded={setImageUrl} />
+          </div>
         </div>
-        <div>
+        <div className="sm:col-span-2">
           <label htmlFor="imageAlt" className={labelClass}>
             Texto alternativo
           </label>
