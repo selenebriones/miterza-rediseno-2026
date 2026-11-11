@@ -8,6 +8,14 @@ export const IMAGE_TYPES = ["image/webp", "image/jpeg", "image/png", "image/avif
 export const IMAGE_MAX_BYTES = 8 * 1024 * 1024;
 export const IMAGE_MAX_LABEL = "8 MB";
 
+// Ruta dentro de Blob que arma el botón: carpeta/nombre-limpio-sufijo.ext
+const UPLOAD_PATH = /^([a-z]+)\/[a-z0-9-]{1,80}\.(webp|jpe?g|png|avif)$/;
+
+export function isUploadPath(pathname: string) {
+  const match = UPLOAD_PATH.exec(pathname);
+  return Boolean(match && IMAGE_FOLDERS.includes(match[1] as ImageFolder));
+}
+
 // Las fotos públicas de Blob viven en <id>.public.blob.vercel-storage.com.
 const BLOB_HOST = /^[a-z0-9]+\.public\.blob\.vercel-storage\.com$/i;
 

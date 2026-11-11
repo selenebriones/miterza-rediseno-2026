@@ -1,12 +1,12 @@
 "use client";
 
 import { useId, useRef, useState } from "react";
-import { upload } from "@vercel/blob/client";
+import { uploadPresigned } from "@vercel/blob/client";
 import { Loader2Icon, UploadIcon } from "lucide-react";
 import { IMAGE_MAX_BYTES, IMAGE_MAX_LABEL, IMAGE_TYPES, type ImageFolder } from "@/lib/admin/images";
 
 // Botón "Subir foto" del panel: sube el archivo directo del navegador a Vercel Blob (la ruta
-// /admin/imagenes solo autoriza) y entrega la URL pública para guardarla con el producto o categoría.
+// /admin/imagenes solo firma la URL) y entrega la URL pública para guardarla con el producto o categoría.
 export function ImageUploadButton({
   folder,
   onUploaded,
@@ -34,7 +34,7 @@ export function ImageUploadButton({
     }
     setProgress(0);
     try {
-      const blob = await upload(`${folder}/${safeName(file.name)}`, file, {
+      const blob = await uploadPresigned(`${folder}/${safeName(file.name)}`, file, {
         access: "public",
         handleUploadUrl: "/admin/imagenes",
         onUploadProgress: ({ percentage }) => setProgress(Math.round(percentage)),
@@ -85,25 +85,27 @@ export function ImageUploadButton({
   );
 }
 
-// Nombre de archivo sin acentos ni espacios; Blob le agrega un sufijo único.
+// Nombre de archivo sin acentos ni espacios, con un sufijo único para no pisar otra foto.
 function safeName(name: string) {
   const dot = name.lastIndexOf(".");
   const base = (dot > 0 ? name.slice(0, dot) : name)
     .normalize("NFD")
-    .replace(/[̀-ͯ]/g, "")
+    .replace(/[\u0300-\u036f]/g, "")
     .toLowerCase()
     .replace(/[^a-z0-9]+/g, "-")
     .replace(/^-+|-+$/g, "")
-    .slice(0, 60);
-  const ext = dot > 0 ? name.slice(dot + 1).toLowerCase().replace(/[^a-z0-9]/g, "") : "webp";
-  return `${base || "foto"}.${ext}`;
+    .slice(0, 60)
+    .replace(/-+$/, "");
+  const ext = (dot > 0 ? name.slice(dot + 1).toLowerCase() : "").replace("jpeg", "jpg");
+  const suffix = crypto.randomUUID().slice(0, 8);
+  return `${base || "foto"}-${suffix}.${["webp", "jpg", "png", "avif"].includes(ext) ? ext : "webp"}`;
 }
 
 function friendlyError(err: unknown) {
   const message = err instanceof Error ? err.message : "";
   if (/Vercel Blob/i.test(message) && /conectar/i.test(message)) return message;
   if (/permiso/i.test(message)) return "No tienes permiso para subir imágenes.";
-  if (/client token|503/i.test(message)) {
+  if (/presigned|client token|503/i.test(message)) {
     return "No se pudo subir: falta conectar Vercel Blob al proyecto o tu sesión terminó.";
   }
   return "No se pudo subir la foto. Revisa tu conexión e intenta de nuevo.";
