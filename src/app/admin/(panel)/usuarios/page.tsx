@@ -8,7 +8,7 @@ import { ADMIN_NAV } from "@/lib/admin/permissions";
 import { requirePermission } from "@/lib/admin/session";
 import { cn } from "@/lib/utils";
 
-export const metadata: Metadata = { title: "Administradores" };
+export const metadata: Metadata = { title: "Usuarios" };
 
 const dateFormat = new Intl.DateTimeFormat("es-MX", { dateStyle: "medium" });
 const permissionLabel = new Map<AdminPermission, string>(ADMIN_NAV.map((item) => [item.permission, item.label]));
@@ -17,13 +17,16 @@ export default function AdministratorsPage() {
   return (
     <div className="mt-2">
       <div className="flex items-center justify-between gap-3">
-        <h1 className="text-[1.75rem] leading-tight font-bold lg:text-[2rem]">Administradores</h1>
+        <div>
+          <h1 className="text-[1.75rem] leading-tight font-bold lg:text-[2rem]">Usuarios</h1>
+          <p className="mt-1 text-sm text-muted-foreground">Personas con acceso al panel administrativo.</p>
+        </div>
         <Link
           href="/admin/usuarios/nuevo"
           className="inline-flex h-11 shrink-0 items-center gap-2 rounded-pill bg-brand px-4 font-semibold text-white hover:bg-brand-hover"
         >
           <PlusIcon className="size-4" aria-hidden="true" />
-          Nuevo
+          Nuevo usuario
         </Link>
       </div>
       <Suspense fallback={<div className="mt-6 h-80 animate-pulse rounded-card bg-white" aria-busy="true" />}>
@@ -41,7 +44,7 @@ async function Administrators() {
     return (
       <div className="mt-6 flex flex-col items-center rounded-card bg-white px-6 py-14 text-center shadow-card">
         <ShieldIcon className="size-10 text-brand" aria-hidden="true" />
-        <h2 className="mt-3 text-lg font-bold">Aún no hay administradores</h2>
+        <h2 className="mt-3 text-lg font-bold">Aún no hay usuarios del panel</h2>
       </div>
     );
   }
@@ -52,7 +55,7 @@ async function Administrators() {
         <table className="w-full text-left text-sm">
           <thead className="border-b border-line text-xs tracking-wide text-muted-foreground uppercase">
             <tr>
-              <th className="px-5 py-3 font-semibold" scope="col">Administrador</th>
+              <th className="px-5 py-3 font-semibold" scope="col">Usuario</th>
               <th className="px-5 py-3 font-semibold" scope="col">Permisos</th>
               <th className="px-5 py-3 font-semibold" scope="col">Último acceso</th>
               <th className="px-5 py-3 font-semibold" scope="col">Estado</th>

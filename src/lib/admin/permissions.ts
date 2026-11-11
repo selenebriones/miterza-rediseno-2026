@@ -12,7 +12,7 @@ export const ADMIN_NAV = [
   { href: "/admin/contenido", label: "Contenido", icon: "content", permission: "MANAGE_CONTENT", ready: false },
   { href: "/admin/pagos", label: "Pagos", icon: "payments", permission: "MANAGE_PAYMENTS", ready: false },
   { href: "/admin/clientes", label: "Clientes", icon: "customers", permission: "MANAGE_CUSTOMERS", ready: false },
-  { href: "/admin/usuarios", label: "Administradores", icon: "admins", permission: "SUPER_ADMIN", ready: true },
+  { href: "/admin/usuarios", label: "Usuarios", icon: "admins", permission: "SUPER_ADMIN", ready: true },
 ] as const satisfies readonly {
   href: string;
   label: string;
