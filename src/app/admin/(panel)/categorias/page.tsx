@@ -1,7 +1,9 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { Suspense } from "react";
-import { FolderTreeIcon, PlusIcon } from "lucide-react";
+import { EyeIcon, FolderTreeIcon, PencilIcon, PlusIcon } from "lucide-react";
+import { deleteCategory } from "./actions";
+import { ACTION, ACTION_OFF, DeleteRowButton } from "@/components/admin/row-actions";
 import { listCategories } from "@/lib/admin/categories";
 import { requirePermission } from "@/lib/admin/session";
 import { cn } from "@/lib/utils";
@@ -62,6 +64,9 @@ async function Categories() {
             <th scope="col" className="px-5 py-3 font-semibold">
               En home
             </th>
+            <th scope="col" className="text-right">
+              Acciones
+            </th>
           </tr>
         </thead>
         <tbody className="divide-y divide-line">
@@ -84,6 +89,43 @@ async function Categories() {
               <td className="px-5 py-4">
                 <Dot value={c.showInHome} />
               </td>
+              <td className="w-px whitespace-nowrap">
+                <div className="flex justify-end gap-2">
+                  {c.isVisible ? (
+                    <a
+                      href={`/productos?categoria=${c.slug}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      aria-label={`Ver ${c.name} en la tienda (se abre en otra pestaña)`}
+                      title="Ver en la tienda"
+                      className={ACTION}
+                    >
+                      <EyeIcon className="size-[18px]" aria-hidden="true" />
+                    </a>
+                  ) : (
+                    <span aria-hidden="true" title="No se ve en la tienda porque está oculta" className={cn(ACTION, ACTION_OFF)}>
+                      <EyeIcon className="size-[18px]" />
+                    </span>
+                  )}
+                  <Link href={`/admin/categorias/${c.id}`} aria-label={`Editar ${c.name}`} title="Editar" className={ACTION}>
+                    <PencilIcon className="size-[18px]" aria-hidden="true" />
+                  </Link>
+                  <DeleteRowButton
+                    id={c.id}
+                    name={c.name}
+                    title="¿Eliminar esta categoría?"
+                    description="Se quita del catálogo y del menú de la tienda. No se puede deshacer."
+                    action={deleteCategory}
+                    disabledReason={
+                      c.productCount > 0
+                        ? "tiene productos; muévelos a otra categoría primero"
+                        : categories.some((other) => other.parentId === c.id)
+                          ? "tiene subcategorías; elimínalas o muévelas primero"
+                          : undefined
+                    }
+                  />
+                </div>
+              </td>
             </tr>
           ))}
         </tbody>
@@ -94,12 +136,7 @@ async function Categories() {
 
 function Dot({ value }: { value: boolean }) {
   return (
-    <span
-      className={cn(
-        "inline-flex items-center gap-1.5 rounded-pill px-2.5 py-1 text-xs font-semibold ring-1 ring-inset",
-        value ? "bg-emerald-50 text-emerald-800 ring-emerald-200" : "bg-zinc-100 text-zinc-700 ring-zinc-200",
-      )}
-    >
+    <span className={cn("insignia", value ? "exito" : "gris")}>
       {value ? "Sí" : "No"}
     </span>
   );

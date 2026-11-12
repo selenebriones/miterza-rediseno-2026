@@ -2,6 +2,7 @@ import "server-only";
 
 import type { Prisma, ProductStatus } from "@/generated/prisma/client";
 import { db } from "@/lib/db";
+import type { Sort } from "@/lib/admin/table-params";
 
 // Lecturas del panel: sin caché (a diferencia de lib/products.ts, que sí cachea para la tienda pública).
 
@@ -19,16 +20,35 @@ function searchWhere(q: string): Prisma.ProductWhereInput | undefined {
   };
 }
 
+export const PRODUCT_SORT_KEYS = ["producto", "estado", "variantes", "precio"] as const;
+export type ProductSortKey = (typeof PRODUCT_SORT_KEYS)[number];
+
+function productsOrderBy(sort: Sort<ProductSortKey>): Prisma.ProductOrderByWithRelationInput[] {
+  if (!sort) return [{ updatedAt: "desc" }];
+  const dir = sort.dir;
+  const by: Record<ProductSortKey, Prisma.ProductOrderByWithRelationInput> = {
+    producto: { name: dir },
+    estado: { status: dir },
+    variantes: { variants: { _count: dir } },
+    precio: { price: dir },
+  };
+  return [by[sort.key], { id: "asc" }];
+}
+
 export async function listProducts({
   status,
   categoryId,
   q,
   page,
+  pageSize = PRODUCTS_PAGE_SIZE,
+  sort = null,
 }: {
   status: ProductStatus | null;
   categoryId: string | null;
   q: string;
   page: number;
+  pageSize?: number;
+  sort?: Sort<ProductSortKey>;
 }) {
   const where: Prisma.ProductWhereInput = {
     ...(status ? { status } : {}),
@@ -36,13 +56,13 @@ export async function listProducts({
     ...searchWhere(q),
   };
   const total = await db.product.count({ where });
-  const pageCount = Math.max(1, Math.ceil(total / PRODUCTS_PAGE_SIZE));
+  const pageCount = Math.max(1, Math.ceil(total / pageSize));
   const current = Math.min(Math.max(1, page), pageCount);
   const products = await db.product.findMany({
     where,
-    orderBy: { updatedAt: "desc" },
-    skip: (current - 1) * PRODUCTS_PAGE_SIZE,
-    take: PRODUCTS_PAGE_SIZE,
+    orderBy: productsOrderBy(sort),
+    skip: (current - 1) * pageSize,
+    take: pageSize,
     select: {
       id: true,
       name: true,

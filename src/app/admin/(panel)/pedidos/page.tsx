@@ -1,10 +1,23 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { Suspense } from "react";
-import { ChevronLeftIcon, ChevronRightIcon, InboxIcon, SearchIcon, XIcon } from "lucide-react";
+import { EyeIcon, InboxIcon } from "lucide-react";
 import { StatusBadge } from "@/components/admin/status-badge";
+import { SortableTh, TablePager } from "@/components/admin/data-table";
+import { PageSizeSelect } from "@/components/admin/page-size-select";
+import { TABLE_CARD, TableSearch } from "@/components/admin/table-search";
 import type { OrderStatus } from "@/generated/prisma/enums";
-import { getStatusCounts, listOrders } from "@/lib/admin/orders";
+import { getStatusCounts, listOrders, ORDER_SORT_KEYS, type OrderSortKey } from "@/lib/admin/orders";
+import {
+  DEFAULT_PAGE_SIZE,
+  nextSort,
+  PAGE_SIZES,
+  parsePageSize,
+  parseSort,
+  sortParam,
+  type Sort,
+  type SortDir,
+} from "@/lib/admin/table-params";
 import { requirePermission } from "@/lib/admin/session";
 import { adminDateFormat, ORDER_STATUSES, STATUS_META, statusFromSlug } from "@/lib/order-status";
 import { formatOrderNumber, formatPrice } from "@/lib/store-config";
@@ -12,12 +25,14 @@ import { cn } from "@/lib/utils";
 
 export const metadata: Metadata = { title: "Pedidos" };
 
-type Filters = { status: OrderStatus | null; q: string; page: number };
+type Filters = { status: OrderStatus | null; q: string; page: number; pageSize: number; sort: Sort<OrderSortKey> };
 
-function ordersHref({ status, q, page }: Filters) {
+function ordersHref({ status, q, page, pageSize, sort }: Filters) {
   const params = new URLSearchParams();
   if (status) params.set("estado", STATUS_META[status].slug);
   if (q) params.set("q", q);
+  if (sort) params.set("orden", sortParam(sort));
+  if (pageSize !== DEFAULT_PAGE_SIZE) params.set("por", String(pageSize));
   if (page > 1) params.set("pagina", String(page));
   const query = params.toString();
   return query ? `/admin/pedidos?${query}` : "/admin/pedidos";
@@ -42,7 +57,11 @@ async function Orders({ searchParams }: Pick<PageProps<"/admin/pedidos">, "searc
     status: statusFromSlug(one(params.estado)),
     q: one(params.q).trim().slice(0, 80),
     page: Math.max(1, Number(one(params.pagina)) || 1),
+    pageSize: parsePageSize(one(params.por)),
+    sort: parseSort(one(params.orden), ORDER_SORT_KEYS),
   };
+  const sortHref = (key: OrderSortKey, firstDir: SortDir = "asc") =>
+    ordersHref({ ...filters, sort: nextSort(filters.sort, key, firstDir), page: 1 });
   const [{ counts, all }, result] = await Promise.all([getStatusCounts(), listOrders(filters)]);
 
   const tabs: { status: OrderStatus | null; label: string; count: number }[] = [
@@ -60,7 +79,7 @@ async function Orders({ searchParams }: Pick<PageProps<"/admin/pedidos">, "searc
             return (
               <li key={tab.label} className="shrink-0">
                 <Link
-                  href={ordersHref({ status: tab.status, q: filters.q, page: 1 })}
+                  href={ordersHref({ ...filters, status: tab.status, page: 1 })}
                   aria-current={active ? "page" : undefined}
                   className={cn(
                     "inline-flex h-10 items-center gap-2 rounded-pill px-4 text-sm font-medium transition-colors",
@@ -83,47 +102,27 @@ async function Orders({ searchParams }: Pick<PageProps<"/admin/pedidos">, "searc
         </ul>
       </nav>
 
-      {/* Formulario GET: funciona sin JavaScript y la búsqueda queda en la URL. */}
-      <form action="/admin/pedidos" role="search" className="flex max-w-xl gap-2">
-        {filters.status && <input type="hidden" name="estado" value={STATUS_META[filters.status].slug} />}
-        <div className="relative flex-1">
-          <SearchIcon
-            className="pointer-events-none absolute top-1/2 left-3.5 size-4 -translate-y-1/2 text-muted-foreground"
-            aria-hidden="true"
-          />
-          <label htmlFor="q" className="sr-only">
-            Buscar pedidos
-          </label>
-          <input
-            id="q"
-            name="q"
-            type="search"
-            defaultValue={filters.q}
-            placeholder="Número, correo o nombre…"
-            className="h-11 w-full rounded-pill border border-input bg-white pr-4 pl-10 text-base text-heading"
-          />
-        </div>
-        <button type="submit" className="h-11 rounded-pill bg-brand px-5 font-semibold text-white hover:bg-brand-hover">
-          Buscar
-        </button>
-        {filters.q && (
-          <Link
-            href={ordersHref({ ...filters, q: "", page: 1 })}
-            aria-label="Limpiar búsqueda"
-            className="grid size-11 shrink-0 place-items-center rounded-full bg-white text-muted-foreground ring-1 ring-line hover:text-brand"
-          >
-            <XIcon className="size-4" aria-hidden="true" />
-          </Link>
-        )}
-      </form>
-
-      <p aria-live="polite" className="text-sm">
-        {result.total} {result.total === 1 ? "pedido" : "pedidos"}
-        {filters.q && <> que coinciden con “{filters.q}”</>}
-      </p>
-
+      <section className={TABLE_CARD}>
+        <TableSearch
+          action="/admin/pedidos"
+          label="Buscar pedidos"
+          placeholder="Número, correo o nombre…"
+          value={filters.q}
+          keep={{
+            estado: filters.status ? STATUS_META[filters.status].slug : null,
+            orden: sortParam(filters.sort),
+            por: filters.pageSize !== DEFAULT_PAGE_SIZE ? String(filters.pageSize) : null,
+          }}
+          clearHref={ordersHref({ ...filters, q: "", page: 1 })}
+          aside={
+            <PageSizeSelect
+              value={filters.pageSize}
+              hrefs={Object.fromEntries(PAGE_SIZES.map((n) => [n, ordersHref({ ...filters, pageSize: n, page: 1 })]))}
+            />
+          }
+        />
       {result.orders.length === 0 ? (
-        <div className="flex flex-col items-center rounded-card bg-white px-6 py-14 text-center shadow-card">
+        <div className="mt-4 flex flex-col items-center rounded-card bg-white px-6 py-14 text-center shadow-card md:mt-0 md:shadow-none">
           <InboxIcon className="size-10 text-brand" aria-hidden="true" />
           <h2 className="mt-3 text-lg font-bold">
             {filters.q ? "Ningún pedido coincide con tu búsqueda" : "No hay pedidos aquí"}
@@ -142,24 +141,17 @@ async function Orders({ searchParams }: Pick<PageProps<"/admin/pedidos">, "searc
       ) : (
         <>
           {/* Desktop: tabla. Toda la fila lleva al detalle (enlace estirado en la primera celda). */}
-          <div className="hidden overflow-hidden rounded-card bg-white shadow-card md:block">
+          <div className="hidden md:block">
             <table className="w-full text-left text-sm">
               <thead className="border-b border-line bg-white text-xs tracking-wide text-muted-foreground uppercase">
                 <tr>
-                  <th scope="col" className="px-5 py-3 font-semibold">
-                    Pedido
-                  </th>
-                  <th scope="col" className="px-5 py-3 font-semibold">
-                    Cliente
-                  </th>
-                  <th scope="col" className="px-5 py-3 font-semibold">
-                    Fecha
-                  </th>
-                  <th scope="col" className="px-5 py-3 font-semibold">
-                    Estado
-                  </th>
-                  <th scope="col" className="px-5 py-3 text-right font-semibold">
-                    Total
+                  <SortableTh label="Pedido" sortKey="pedido" sort={filters.sort} href={sortHref("pedido", "desc")} />
+                  <SortableTh label="Cliente" sortKey="cliente" sort={filters.sort} href={sortHref("cliente")} />
+                  <SortableTh label="Fecha" sortKey="fecha" sort={filters.sort} href={sortHref("fecha", "desc")} />
+                  <SortableTh label="Estado" sortKey="estado" sort={filters.sort} href={sortHref("estado")} />
+                  <SortableTh label="Total" sortKey="total" sort={filters.sort} href={sortHref("total", "desc")} align="right" />
+                  <th scope="col" className="text-right">
+                    Acciones
                   </th>
                 </tr>
               </thead>
@@ -193,6 +185,17 @@ async function Orders({ searchParams }: Pick<PageProps<"/admin/pedidos">, "searc
                         {order.pieces} {order.pieces === 1 ? "pieza" : "piezas"}
                       </span>
                     </td>
+                    <td className="w-px text-right whitespace-nowrap">
+                      {/* Encima del enlace que cubre la fila, para que tenga su propio foco y hover. */}
+                      <Link
+                        href={`/admin/pedidos/${order.id}`}
+                        aria-label={`Ver detalle del pedido ${formatOrderNumber(order.number)}`}
+                        title="Ver detalle"
+                        className="relative z-10 inline-grid size-10 place-items-center rounded-full border border-[#dee2e6] bg-white text-[#343a40] transition-colors hover:border-brand hover:bg-brand-50 hover:text-brand"
+                      >
+                        <EyeIcon className="size-[18px]" aria-hidden="true" />
+                      </Link>
+                    </td>
                   </tr>
                 ))}
               </tbody>
@@ -200,7 +203,7 @@ async function Orders({ searchParams }: Pick<PageProps<"/admin/pedidos">, "searc
           </div>
 
           {/* Móvil: tarjetas. */}
-          <ul className="space-y-3 md:hidden">
+          <ul className="mt-4 space-y-3 md:hidden">
             {result.orders.map((order) => (
               <li key={order.id}>
                 <Link
@@ -223,37 +226,17 @@ async function Orders({ searchParams }: Pick<PageProps<"/admin/pedidos">, "searc
             ))}
           </ul>
 
-          {result.pageCount > 1 && (
-            <nav aria-label="Paginación" className="flex items-center justify-between gap-3">
-              {result.page > 1 ? (
-                <Link
-                  href={ordersHref({ ...filters, page: result.page - 1 })}
-                  className="inline-flex h-11 items-center gap-1 rounded-pill bg-white px-4 font-medium text-brand ring-1 ring-line hover:ring-brand"
-                >
-                  <ChevronLeftIcon className="size-4" aria-hidden="true" />
-                  Anterior
-                </Link>
-              ) : (
-                <span />
-              )}
-              <p className="text-sm">
-                Página <strong className="text-heading">{result.page}</strong> de {result.pageCount}
-              </p>
-              {result.page < result.pageCount ? (
-                <Link
-                  href={ordersHref({ ...filters, page: result.page + 1 })}
-                  className="inline-flex h-11 items-center gap-1 rounded-pill bg-white px-4 font-medium text-brand ring-1 ring-line hover:ring-brand"
-                >
-                  Siguiente
-                  <ChevronRightIcon className="size-4" aria-hidden="true" />
-                </Link>
-              ) : (
-                <span />
-              )}
-            </nav>
-          )}
+          <TablePager
+            page={result.page}
+            pageCount={result.pageCount}
+            pageSize={filters.pageSize}
+            total={result.total}
+            noun={["pedido", "pedidos"]}
+            href={(n) => ordersHref({ ...filters, page: n })}
+          />
         </>
       )}
+      </section>
     </div>
   );
 }

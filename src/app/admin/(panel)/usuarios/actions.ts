@@ -1,5 +1,6 @@
 "use server";
 
+import { refresh } from "next/cache";
 import { redirect } from "next/navigation";
 import type { AdminPermission } from "@/generated/prisma/enums";
 import { ADMIN_NAV } from "@/lib/admin/permissions";
@@ -101,4 +102,26 @@ export async function updateAdministrator(
   }
 
   redirect("/admin/usuarios");
+}
+
+// Botón de eliminar del listado. No deja borrar tu propia cuenta ni al último administrador con acceso total
+// (el panel se quedaría sin quién gestione administradores). Sus cambios de estado en pedidos se conservan.
+export async function deleteAdministrator(userId: string): Promise<{ ok: boolean; message: string }> {
+  const admin = await authorize("SUPER_ADMIN");
+  if (!admin) return { ok: false, message: "Tu sesión ya no puede administrar usuarios." };
+  if (!/^[a-z0-9]{20,40}$/.test(userId)) return { ok: false, message: "Administrador no válido." };
+  if (userId === admin.id) return { ok: false, message: "No puedes eliminar tu propia cuenta." };
+
+  const target = await db.user.findFirst({ where: { id: userId, role: "ADMIN" }, select: { permissions: true } });
+  if (!target) return { ok: false, message: "No encontramos este administrador." };
+  if (target.permissions.includes("SUPER_ADMIN")) {
+    const others = await db.user.count({
+      where: { role: "ADMIN", isActive: true, permissions: { has: "SUPER_ADMIN" }, id: { not: userId } },
+    });
+    if (others === 0) return { ok: false, message: "Es el único con acceso total; dale ese acceso a alguien más primero." };
+  }
+
+  await db.user.delete({ where: { id: userId } });
+  refresh();
+  return { ok: true, message: "Administrador eliminado." };
 }

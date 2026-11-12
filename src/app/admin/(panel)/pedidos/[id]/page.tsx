@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Suspense } from "react";
-import { ArrowLeftIcon, ImageIcon, MailIcon, MapPinIcon, MessageCircleIcon, NavigationIcon, PhoneIcon, TruckIcon } from "lucide-react";
+import { ArrowLeftIcon, ImageIcon, MailIcon, MapPinIcon, MessageCircleIcon, NavigationIcon, PhoneIcon, TruckIcon, UserXIcon } from "lucide-react";
 import { StatusBadge } from "@/components/admin/status-badge";
 import { StatusPanel } from "@/components/admin/status-panel";
 import { getOrderDetail } from "@/lib/admin/orders";
@@ -144,9 +144,20 @@ async function OrderDetail({ params }: Pick<PageProps<"/admin/pedidos/[id]">, "p
           <StatusPanel orderId={order.id} status={order.status} />
 
           <section aria-labelledby="cliente" className="rounded-card bg-white p-5 shadow-card">
-            <h2 id="cliente" className="text-lg font-bold">
-              Cliente
-            </h2>
+            <div className="flex flex-wrap items-center gap-2">
+              <h2 id="cliente" className="text-lg font-bold">
+                Cliente
+              </h2>
+              {order.customerDeletedAt && (
+                <span
+                  title={`Cuenta borrada el ${adminDateFormat.format(order.customerDeletedAt)}`}
+                  className="insignia peligro gap-1.5"
+                >
+                  <UserXIcon className="size-3.5" aria-hidden="true" />
+                  Cliente borrado
+                </span>
+              )}
+            </div>
             <p className="mt-2 font-medium text-heading">
               {order.firstName} {order.lastName}
             </p>

@@ -2,12 +2,15 @@ import Link from "next/link";
 import { LogOutIcon, UserIcon } from "lucide-react";
 import { customerLogout } from "@/app/(acceso)/cuenta/actions";
 import { db } from "@/lib/db";
-import { getSession } from "@/lib/session";
+import { DeletedAccountCleanup } from "@/components/cart/deleted-account-cleanup";
+import { getSessionState } from "@/lib/session";
 
 // Franja superior solo con sesión: quién está dentro, acceso a su cuenta y cerrar sesión.
 // Verde más oscuro que la barra de aviso para que no se confundan.
 export async function UserBar() {
-  const session = await getSession();
+  const { session, accountDeleted } = await getSessionState();
+  // Cuenta eliminada desde el panel: se vacía su carrito y se cierra la sesión en este navegador.
+  if (accountDeleted) return <DeletedAccountCleanup />;
   if (!session?.user) return null;
   // El nombre sale de la base: así se ve al día justo después de editarlo en "Mis datos" (la cookie de
   // sesión se actualiza en esa misma respuesta y esta lectura todavía tendría la anterior).

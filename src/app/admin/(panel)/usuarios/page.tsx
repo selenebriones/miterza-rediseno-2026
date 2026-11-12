@@ -1,7 +1,9 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { Suspense } from "react";
-import { PlusIcon, ShieldIcon } from "lucide-react";
+import { PencilIcon, PlusIcon, ShieldIcon } from "lucide-react";
+import { deleteAdministrator } from "./actions";
+import { ACTION, DeleteRowButton } from "@/components/admin/row-actions";
 import type { AdminPermission } from "@/generated/prisma/enums";
 import { listAdministrators } from "@/lib/admin/administrators";
 import { ADMIN_NAV } from "@/lib/admin/permissions";
@@ -37,7 +39,7 @@ export default function AdministratorsPage() {
 }
 
 async function Administrators() {
-  await requirePermission("SUPER_ADMIN");
+  const me = await requirePermission("SUPER_ADMIN");
   const administrators = await listAdministrators();
 
   if (administrators.length === 0) {
@@ -59,6 +61,7 @@ async function Administrators() {
               <th className="px-5 py-3 font-semibold" scope="col">Permisos</th>
               <th className="px-5 py-3 font-semibold" scope="col">Último acceso</th>
               <th className="px-5 py-3 font-semibold" scope="col">Estado</th>
+              <th className="text-right" scope="col">Acciones</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-line">
@@ -76,6 +79,26 @@ async function Administrators() {
                 <td className="px-5 py-4">{permissionsText(administrator.permissions)}</td>
                 <td className="px-5 py-4">{administrator.lastLoginAt ? dateFormat.format(administrator.lastLoginAt) : "Nunca"}</td>
                 <td className="px-5 py-4"><Status active={administrator.isActive} /></td>
+                <td className="w-px whitespace-nowrap">
+                  <div className="flex justify-end gap-2">
+                    <Link
+                      href={`/admin/usuarios/${administrator.id}`}
+                      aria-label={`Editar a ${administrator.name ?? administrator.email}`}
+                      title="Editar"
+                      className={ACTION}
+                    >
+                      <PencilIcon className="size-[18px]" aria-hidden="true" />
+                    </Link>
+                    <DeleteRowButton
+                      id={administrator.id}
+                      name={administrator.name ?? administrator.email}
+                      title="¿Eliminar a este administrador?"
+                      description="Ya no podrá entrar al panel y no se puede deshacer. Los cambios que hizo en pedidos se conservan en su historial."
+                      action={deleteAdministrator}
+                      disabledReason={administrator.id === me.id ? "es tu propia cuenta" : undefined}
+                    />
+                  </div>
+                </td>
               </tr>
             ))}
           </tbody>
@@ -109,10 +132,7 @@ function permissionsText(permissions: AdminPermission[]) {
 
 function Status({ active }: { active: boolean }) {
   return (
-    <span className={cn(
-      "inline-flex rounded-pill px-2.5 py-1 text-xs font-semibold whitespace-nowrap ring-1 ring-inset",
-      active ? "bg-emerald-50 text-emerald-800 ring-emerald-200" : "bg-zinc-100 text-zinc-700 ring-zinc-200",
-    )}>
+    <span className={cn("insignia", active ? "exito" : "peligro")}>
       {active ? "Activo" : "Inactivo"}
     </span>
   );
