@@ -1,10 +1,23 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { Suspense } from "react";
-import { ChevronLeftIcon, ChevronRightIcon, ImageIcon, PackageIcon, PlusIcon, SearchIcon, XIcon } from "lucide-react";
+import { EyeIcon, ImageIcon, PackageIcon, PencilIcon, PlusIcon, XIcon } from "lucide-react";
+import { SortableTh, TablePager } from "@/components/admin/data-table";
+import { PageSizeSelect } from "@/components/admin/page-size-select";
+import { TABLE_CARD, TableSearch } from "@/components/admin/table-search";
 import type { ProductStatus } from "@/generated/prisma/enums";
 import { listCategoryOptions } from "@/lib/admin/categories";
-import { getProductStatusCounts, listProducts } from "@/lib/admin/products";
+import { getProductStatusCounts, listProducts, PRODUCT_SORT_KEYS, type ProductSortKey } from "@/lib/admin/products";
+import {
+  DEFAULT_PAGE_SIZE,
+  nextSort,
+  PAGE_SIZES,
+  parsePageSize,
+  parseSort,
+  sortParam,
+  type Sort,
+  type SortDir,
+} from "@/lib/admin/table-params";
 import { requirePermission } from "@/lib/admin/session";
 import { formatPrice } from "@/lib/store-config";
 import { PRODUCT_STATUSES, PRODUCT_STATUS_META, productStatusFromSlug } from "@/lib/product-status";
@@ -12,13 +25,26 @@ import { cn } from "@/lib/utils";
 
 export const metadata: Metadata = { title: "Productos" };
 
-type Filters = { status: ProductStatus | null; categoryId: string | null; q: string; page: number };
+// Botón redondo de acción, como en terza-sitio: gris con borde y verde al pasar el mouse.
+const ACTION =
+  "inline-grid size-10 place-items-center rounded-full border border-[#dee2e6] bg-white text-[#343a40] transition-colors hover:border-brand hover:bg-brand-50 hover:text-brand";
 
-function productsHref({ status, categoryId, q, page }: Filters) {
+type Filters = {
+  status: ProductStatus | null;
+  categoryId: string | null;
+  q: string;
+  page: number;
+  pageSize: number;
+  sort: Sort<ProductSortKey>;
+};
+
+function productsHref({ status, categoryId, q, page, pageSize, sort }: Filters) {
   const params = new URLSearchParams();
   if (status) params.set("estado", PRODUCT_STATUS_META[status].slug);
   if (categoryId) params.set("categoria", categoryId);
   if (q) params.set("q", q);
+  if (sort) params.set("orden", sortParam(sort));
+  if (pageSize !== DEFAULT_PAGE_SIZE) params.set("por", String(pageSize));
   if (page > 1) params.set("pagina", String(page));
   const query = params.toString();
   return query ? `/admin/productos?${query}` : "/admin/productos";
@@ -61,6 +87,14 @@ async function Products({ searchParams }: Pick<PageProps<"/admin/productos">, "s
     categoryId: one(params.categoria) || null,
     q: one(params.q).trim().slice(0, 80),
     page: Math.max(1, Number(one(params.pagina)) || 1),
+    pageSize: parsePageSize(one(params.por)),
+    sort: parseSort(one(params.orden), PRODUCT_SORT_KEYS),
+  };
+  const sortHref = (key: ProductSortKey, firstDir: SortDir = "asc") =>
+    productsHref({ ...filters, sort: nextSort(filters.sort, key, firstDir), page: 1 });
+  const keepTable = {
+    orden: sortParam(filters.sort),
+    por: filters.pageSize !== DEFAULT_PAGE_SIZE ? String(filters.pageSize) : null,
   };
   const [{ counts, all }, result, categories] = await Promise.all([
     getProductStatusCounts(),
@@ -105,25 +139,11 @@ async function Products({ searchParams }: Pick<PageProps<"/admin/productos">, "s
         </ul>
       </nav>
 
-      <form action="/admin/productos" role="search" className="flex flex-wrap gap-2">
+      {/* Filtro de categoría: se queda fuera de la tarjeta, junto a las pestañas. Conserva estado y búsqueda. */}
+      <form action="/admin/productos" className="flex flex-wrap gap-2">
         {filters.status && <input type="hidden" name="estado" value={PRODUCT_STATUS_META[filters.status].slug} />}
-        <div className="relative max-w-xl flex-1">
-          <SearchIcon
-            className="pointer-events-none absolute top-1/2 left-3.5 size-4 -translate-y-1/2 text-muted-foreground"
-            aria-hidden="true"
-          />
-          <label htmlFor="q" className="sr-only">
-            Buscar productos
-          </label>
-          <input
-            id="q"
-            name="q"
-            type="search"
-            defaultValue={filters.q}
-            placeholder="Nombre, slug o SKU…"
-            className="h-11 w-full rounded-pill border border-input bg-white pr-4 pl-10 text-base text-heading"
-          />
-        </div>
+        {filters.q && <input type="hidden" name="q" value={filters.q} />}
+        {Object.entries(keepTable).map(([name, v]) => (v ? <input key={name} type="hidden" name={name} value={v} /> : null))}
         <label htmlFor="categoria" className="sr-only">
           Categoría
         </label>
@@ -140,27 +160,44 @@ async function Products({ searchParams }: Pick<PageProps<"/admin/productos">, "s
             </option>
           ))}
         </select>
-        <button type="submit" className="h-11 rounded-pill bg-brand px-5 font-semibold text-white hover:bg-brand-hover">
-          Buscar
+        <button
+          type="submit"
+          className="h-11 rounded-pill border border-input bg-white px-5 font-semibold text-heading hover:border-brand hover:text-brand"
+        >
+          Filtrar
         </button>
-        {(filters.q || filters.categoryId) && (
+        {filters.categoryId && (
           <Link
-            href={productsHref({ ...filters, q: "", categoryId: null, page: 1 })}
-            aria-label="Limpiar filtros"
-            className="grid size-11 shrink-0 place-items-center rounded-full bg-white text-muted-foreground ring-1 ring-line hover:text-brand"
+            href={productsHref({ ...filters, categoryId: null, page: 1 })}
+            aria-label="Quitar filtro de categoría"
+            className="grid size-11 shrink-0 place-items-center rounded-pill border border-input bg-white text-heading hover:border-brand hover:text-brand"
           >
             <XIcon className="size-4" aria-hidden="true" />
           </Link>
         )}
       </form>
 
-      <p aria-live="polite" className="text-sm">
-        {result.total} {result.total === 1 ? "producto" : "productos"}
-        {filters.q && <> que coinciden con “{filters.q}”</>}
-      </p>
-
+      <section className={TABLE_CARD}>
+        <TableSearch
+          action="/admin/productos"
+          label="Buscar productos"
+          placeholder="Nombre, slug o SKU…"
+          value={filters.q}
+          keep={{
+            estado: filters.status ? PRODUCT_STATUS_META[filters.status].slug : null,
+            categoria: filters.categoryId,
+            ...keepTable,
+          }}
+          clearHref={productsHref({ ...filters, q: "", page: 1 })}
+          aside={
+            <PageSizeSelect
+              value={filters.pageSize}
+              hrefs={Object.fromEntries(PAGE_SIZES.map((n) => [n, productsHref({ ...filters, pageSize: n, page: 1 })]))}
+            />
+          }
+        />
       {result.products.length === 0 ? (
-        <div className="flex flex-col items-center rounded-card bg-white px-6 py-14 text-center shadow-card">
+        <div className="mt-4 flex flex-col items-center rounded-card bg-white px-6 py-14 text-center shadow-card md:mt-0 md:shadow-none">
           <PackageIcon className="size-10 text-brand" aria-hidden="true" />
           <h2 className="mt-3 text-lg font-bold">
             {filters.q || filters.categoryId ? "Ningún producto coincide con tu búsqueda" : "Aún no hay productos"}
@@ -173,24 +210,17 @@ async function Products({ searchParams }: Pick<PageProps<"/admin/productos">, "s
         </div>
       ) : (
         <>
-          <div className="hidden overflow-hidden rounded-card bg-white shadow-card md:block">
+          <div className="hidden md:block">
             <table className="w-full text-left text-sm">
               <thead className="border-b border-line bg-white text-xs tracking-wide text-muted-foreground uppercase">
                 <tr>
-                  <th scope="col" className="px-5 py-3 font-semibold">
-                    Producto
-                  </th>
-                  <th scope="col" className="px-5 py-3 font-semibold">
-                    Categoría
-                  </th>
-                  <th scope="col" className="px-5 py-3 font-semibold">
-                    Estado
-                  </th>
-                  <th scope="col" className="px-5 py-3 font-semibold">
-                    Variantes
-                  </th>
-                  <th scope="col" className="px-5 py-3 text-right font-semibold">
-                    Precio desde
+                  <SortableTh label="Producto" sortKey="producto" sort={filters.sort} href={sortHref("producto")} />
+                  <th scope="col">Categoría</th>
+                  <SortableTh label="Estado" sortKey="estado" sort={filters.sort} href={sortHref("estado")} />
+                  <SortableTh label="Variantes" sortKey="variantes" sort={filters.sort} href={sortHref("variantes", "desc")} />
+                  <SortableTh label="Precio desde" sortKey="precio" sort={filters.sort} href={sortHref("precio")} align="right" />
+                  <th scope="col" className="text-right">
+                    Acciones
                   </th>
                 </tr>
               </thead>
@@ -221,12 +251,7 @@ async function Products({ searchParams }: Pick<PageProps<"/admin/productos">, "s
                     </td>
                     <td className="px-5 py-4">{product.categoryName ?? "—"}</td>
                     <td className="px-5 py-4">
-                      <span
-                        className={cn(
-                          "inline-flex items-center gap-1.5 rounded-pill px-2.5 py-1 text-xs font-semibold whitespace-nowrap ring-1 ring-inset",
-                          PRODUCT_STATUS_META[product.status].badge,
-                        )}
-                      >
+                      <span className={cn("insignia", PRODUCT_STATUS_META[product.status].tone)}>
                         {PRODUCT_STATUS_META[product.status].label}
                       </span>
                     </td>
@@ -234,13 +259,46 @@ async function Products({ searchParams }: Pick<PageProps<"/admin/productos">, "s
                     <td className="px-5 py-4 text-right font-semibold text-heading tabular-nums">
                       {formatPrice(product.price)}
                     </td>
+                    <td className="w-px whitespace-nowrap">
+                      {/* Encima del enlace que cubre la fila, para que cada botón tenga su propio foco y hover. */}
+                      <div className="relative z-10 flex justify-end gap-2">
+                        {product.status === "ACTIVE" ? (
+                          <a
+                            href={`/productos/${product.slug}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            aria-label={`Ver ${product.name} en la tienda (se abre en otra pestaña)`}
+                            title="Ver en la tienda"
+                            className={ACTION}
+                          >
+                            <EyeIcon className="size-[18px]" aria-hidden="true" />
+                          </a>
+                        ) : (
+                          <span
+                            aria-hidden="true"
+                            title="No se ve en la tienda porque no está activo"
+                            className={`${ACTION} pointer-events-none opacity-35`}
+                          >
+                            <EyeIcon className="size-[18px]" />
+                          </span>
+                        )}
+                        <Link
+                          href={`/admin/productos/${product.id}`}
+                          aria-label={`Editar ${product.name}`}
+                          title="Editar"
+                          className={ACTION}
+                        >
+                          <PencilIcon className="size-[18px]" aria-hidden="true" />
+                        </Link>
+                      </div>
+                    </td>
                   </tr>
                 ))}
               </tbody>
             </table>
           </div>
 
-          <ul className="space-y-3 md:hidden">
+          <ul className="mt-4 space-y-3 md:hidden">
             {result.products.map((product) => (
               <li key={product.id}>
                 <Link
@@ -258,12 +316,7 @@ async function Products({ searchParams }: Pick<PageProps<"/admin/productos">, "s
                   <span className="min-w-0 flex-1">
                     <span className="block truncate font-semibold text-heading">{product.name}</span>
                     <span className="flex items-center justify-between text-sm">
-                      <span
-                        className={cn(
-                          "inline-flex items-center rounded-pill px-2 py-0.5 text-xs font-semibold ring-1 ring-inset",
-                          PRODUCT_STATUS_META[product.status].badge,
-                        )}
-                      >
+                      <span className={cn("insignia", PRODUCT_STATUS_META[product.status].tone)}>
                         {PRODUCT_STATUS_META[product.status].label}
                       </span>
                       <span className="font-semibold text-heading tabular-nums">{formatPrice(product.price)}</span>
@@ -274,37 +327,17 @@ async function Products({ searchParams }: Pick<PageProps<"/admin/productos">, "s
             ))}
           </ul>
 
-          {result.pageCount > 1 && (
-            <nav aria-label="Paginación" className="flex items-center justify-between gap-3">
-              {result.page > 1 ? (
-                <Link
-                  href={productsHref({ ...filters, page: result.page - 1 })}
-                  className="inline-flex h-11 items-center gap-1 rounded-pill bg-white px-4 font-medium text-brand ring-1 ring-line hover:ring-brand"
-                >
-                  <ChevronLeftIcon className="size-4" aria-hidden="true" />
-                  Anterior
-                </Link>
-              ) : (
-                <span />
-              )}
-              <p className="text-sm">
-                Página <strong className="text-heading">{result.page}</strong> de {result.pageCount}
-              </p>
-              {result.page < result.pageCount ? (
-                <Link
-                  href={productsHref({ ...filters, page: result.page + 1 })}
-                  className="inline-flex h-11 items-center gap-1 rounded-pill bg-white px-4 font-medium text-brand ring-1 ring-line hover:ring-brand"
-                >
-                  Siguiente
-                  <ChevronRightIcon className="size-4" aria-hidden="true" />
-                </Link>
-              ) : (
-                <span />
-              )}
-            </nav>
-          )}
+          <TablePager
+            page={result.page}
+            pageCount={result.pageCount}
+            pageSize={filters.pageSize}
+            total={result.total}
+            noun={["producto", "productos"]}
+            href={(n) => productsHref({ ...filters, page: n })}
+          />
         </>
       )}
+      </section>
     </div>
   );
 }

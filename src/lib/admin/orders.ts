@@ -2,6 +2,7 @@ import "server-only";
 
 import type { OrderStatus, Prisma } from "@/generated/prisma/client";
 import { db } from "@/lib/db";
+import type { Sort } from "@/lib/admin/table-params";
 
 // Consultas del panel, sin caché: los pedidos cambian constantemente.
 
@@ -29,16 +30,44 @@ function searchWhere(q: string): Prisma.OrderWhereInput | undefined {
   };
 }
 
-export async function listOrders({ status, q, page }: { status: OrderStatus | null; q: string; page: number }) {
+export const ORDER_SORT_KEYS = ["pedido", "cliente", "fecha", "estado", "total"] as const;
+export type OrderSortKey = (typeof ORDER_SORT_KEYS)[number];
+
+function ordersOrderBy(sort: Sort<OrderSortKey>): Prisma.OrderOrderByWithRelationInput[] {
+  if (!sort) return [{ createdAt: "desc" }];
+  const dir = sort.dir;
+  const by: Record<OrderSortKey, Prisma.OrderOrderByWithRelationInput[]> = {
+    pedido: [{ number: dir }],
+    cliente: [{ firstName: dir }, { lastName: dir }],
+    fecha: [{ createdAt: dir }],
+    estado: [{ status: dir }],
+    total: [{ total: dir }],
+  };
+  return [...by[sort.key], { number: "desc" }];
+}
+
+export async function listOrders({
+  status,
+  q,
+  page,
+  pageSize = ORDERS_PAGE_SIZE,
+  sort = null,
+}: {
+  status: OrderStatus | null;
+  q: string;
+  page: number;
+  pageSize?: number;
+  sort?: Sort<OrderSortKey>;
+}) {
   const where: Prisma.OrderWhereInput = { ...(status ? { status } : {}), ...searchWhere(q) };
   const total = await db.order.count({ where });
-  const pageCount = Math.max(1, Math.ceil(total / ORDERS_PAGE_SIZE));
+  const pageCount = Math.max(1, Math.ceil(total / pageSize));
   const current = Math.min(Math.max(1, page), pageCount);
   const orders = await db.order.findMany({
     where,
-    orderBy: { createdAt: "desc" },
-    skip: (current - 1) * ORDERS_PAGE_SIZE,
-    take: ORDERS_PAGE_SIZE,
+    orderBy: ordersOrderBy(sort),
+    skip: (current - 1) * pageSize,
+    take: pageSize,
     select: {
       id: true,
       number: true,

@@ -1,7 +1,6 @@
 "use server";
 
 import { revalidateTag } from "next/cache";
-import { auth } from "@/auth";
 import { redirect } from "next/navigation";
 import { parseLocation } from "@/lib/location";
 import { MAX_ADDRESSES } from "@/lib/addresses";
@@ -16,6 +15,7 @@ import {
 } from "@/lib/checkout-validation";
 import { CACHE_TAGS, db } from "@/lib/db";
 import { findCoupon } from "@/lib/coupons";
+import { getSession } from "@/lib/session";
 import { computeTotals } from "@/lib/store-config";
 
 export type CheckoutState = {
@@ -42,7 +42,7 @@ export async function placeOrder(_prev: CheckoutState, formData: FormData): Prom
   ) as CheckoutValues;
 
   // Para comprar hay que tener cuenta (la página ya lo exige; aquí se vuelve a revisar).
-  const session = await auth();
+  const session = await getSession();
   if (!session?.user?.id) redirect("/cuenta/ingresar?desde=/checkout");
   if (session.user.role !== "CUSTOMER") redirect("/admin");
 

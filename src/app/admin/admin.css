@@ -1,0 +1,508 @@
+/* Diseño del panel, igual al administrador de terza-sitio (plantilla UBold): barra superior verde, menú lateral
+   blanco con secciones, fondo gris claro, tarjetas blancas con sombra suave y radio de 6 px, tablas con encabezados
+   en mayúsculas e insignias con fondo suave. Solo aplica dentro de .admin-ui (no toca la tienda).
+
+   Las páginas del panel usan las clases del tema de la tienda (rounded-card, shadow-card, text-heading…); aquí se
+   reinterpretan para el panel. Estas reglas van sin @layer para ganarle a las utilidades de Tailwind. */
+
+/* Colores del panel. También en el menú de la cuenta, que se pinta fuera de .admin-ui (en un portal). */
+.admin-ui,
+.admin-menu-usuario {
+  --a-teal: #00514a; /* color principal (verde Terza) */
+  --a-teal-dark: #00413b;
+  --a-teal-suave: #e6eeed;
+  --a-ink: #343a40; /* títulos */
+  --a-text: #6c757d; /* texto */
+  --a-muted: #98a6ad;
+  --a-border: #eef0f2;
+  --a-input: #dee2e6;
+  --a-bg: #f5f6f8;
+  --a-success: #1abc9c;
+  --a-warning: #f7b84b;
+  --a-danger: #f1556c;
+  --a-sombra: 0 0 35px rgb(154 161 171 / 0.15);
+  --a-radio: 6px;
+  --a-lateral: 260px;
+  --a-superior: 70px;
+}
+.admin-ui {
+  min-height: 100dvh;
+  background: var(--a-bg);
+  color: var(--a-text);
+  font-size: 15px;
+  line-height: 1.5;
+}
+
+/* ---------- Marco: barra superior + menú lateral + contenido ---------- */
+.admin-marco {
+  display: grid;
+  min-height: 100dvh;
+  grid-template-columns: var(--a-lateral) minmax(0, 1fr);
+  grid-template-rows: var(--a-superior) 1fr;
+  grid-template-areas: "superior superior" "lateral contenido";
+}
+.admin-marco:has(.admin-lateral[data-cerrado]) {
+  grid-template-columns: 0 minmax(0, 1fr);
+}
+.admin-marco:has(.admin-lateral[data-cerrado]) .admin-lateral {
+  display: none;
+}
+
+.admin-superior {
+  grid-area: superior;
+  position: sticky;
+  top: 0;
+  z-index: 40;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding-right: 24px;
+  background: var(--a-teal);
+  color: #fff;
+}
+.admin-superior-logo {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: var(--a-lateral);
+  height: 100%;
+  flex-shrink: 0;
+}
+.admin-superior-boton {
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  flex-shrink: 0;
+  border: 0;
+  border-radius: var(--a-radio);
+  background: rgb(255 255 255 / 0.06);
+  color: #fff;
+  cursor: pointer;
+}
+.admin-superior-boton:hover {
+  background: rgb(255 255 255 / 0.12);
+}
+a.admin-superior-boton {
+  background: none;
+}
+.admin-superior-buscar {
+  position: relative;
+  display: flex;
+  align-items: center;
+  width: 320px;
+  margin-left: auto;
+}
+.admin-superior-buscar svg {
+  position: absolute;
+  left: 16px;
+  width: 18px;
+  height: 18px;
+  color: rgb(255 255 255 / 0.6);
+  pointer-events: none;
+}
+.admin-superior-buscar input {
+  width: 100%;
+  height: 44px;
+  padding: 0 16px 0 44px;
+  border: 0;
+  border-radius: 999px;
+  background: rgb(255 255 255 / 0.07);
+  color: #fff;
+  font-size: 15px;
+}
+.admin-superior-buscar input::placeholder {
+  color: rgb(255 255 255 / 0.55);
+}
+.admin-superior-buscar input:focus {
+  outline: 2px solid rgb(255 255 255 / 0.3);
+}
+.admin-usuario {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  height: 48px;
+  padding: 0 10px;
+  border: 0;
+  border-radius: var(--a-radio);
+  background: none;
+  color: #fff;
+  cursor: pointer;
+}
+.admin-usuario:hover,
+.admin-usuario[aria-expanded="true"] {
+  background: rgb(255 255 255 / 0.06);
+}
+.admin-usuario .avatar {
+  display: grid;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: rgb(255 255 255 / 0.15);
+  font-weight: 700;
+}
+.admin-usuario .nombre {
+  font-weight: 600;
+  max-width: 180px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.admin-menu-usuario {
+  min-width: 240px;
+  padding: 6px 0;
+  border-radius: var(--a-radio);
+  background: #fff;
+  box-shadow: 0 8px 30px rgb(0 0 0 / 0.15);
+  font-size: 15px;
+}
+.admin-menu-usuario p {
+  margin: 0;
+  padding: 8px 18px 10px;
+  border-bottom: 1px solid var(--a-border);
+  color: var(--a-muted);
+  font-size: 13px;
+  overflow-wrap: anywhere;
+}
+.admin-menu-usuario a,
+.admin-menu-usuario button {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 10px 18px;
+  border: 0;
+  background: none;
+  color: var(--a-ink);
+  text-align: left;
+  cursor: pointer;
+}
+.admin-menu-usuario a:hover,
+.admin-menu-usuario button:hover {
+  background: var(--a-bg);
+}
+.admin-menu-usuario .salir {
+  color: var(--a-danger);
+}
+
+/* Menú lateral */
+.admin-lateral {
+  grid-area: lateral;
+  position: sticky;
+  top: var(--a-superior);
+  height: calc(100dvh - var(--a-superior));
+  overflow-y: auto;
+  padding: 16px 0;
+  background: #fff;
+  box-shadow: var(--a-sombra);
+}
+.admin-lateral-seccion {
+  margin: 16px 24px 8px;
+  color: var(--a-muted);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+.admin-lateral ul {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.admin-lateral a,
+.admin-lateral .proximamente {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 12px 24px;
+  color: var(--a-text);
+  font-size: 16px;
+}
+.admin-lateral svg {
+  width: 20px;
+  height: 20px;
+  flex-shrink: 0;
+}
+.admin-lateral a:hover,
+.admin-lateral a[aria-current] {
+  color: var(--a-teal);
+}
+.admin-lateral a[aria-current] {
+  font-weight: 600;
+  box-shadow: inset 3px 0 0 var(--a-teal);
+  background: linear-gradient(90deg, var(--a-teal-suave), transparent 80%);
+}
+.admin-lateral .proximamente {
+  color: var(--a-muted);
+  cursor: default;
+}
+.admin-lateral .proximamente small {
+  margin-left: auto;
+  padding: 1px 8px;
+  border-radius: 4px;
+  background: var(--a-bg);
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.admin-contenido {
+  grid-area: contenido;
+  min-width: 0;
+  padding: 28px 32px 40px;
+}
+
+/* Celular y tableta: barra compacta; el menú lateral se abre como hoja desde la izquierda */
+@media (max-width: 1023.98px) {
+  .admin-ui {
+    --a-superior: 60px;
+  }
+  .admin-marco,
+  .admin-marco:has(.admin-lateral[data-cerrado]) {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-areas: "superior" "contenido";
+  }
+  .admin-marco > .admin-lateral {
+    display: none;
+  }
+  .admin-superior {
+    padding-right: 8px;
+    gap: 4px;
+  }
+  .admin-superior-logo {
+    width: auto;
+    order: 2;
+    margin-right: auto;
+    padding-left: 8px;
+  }
+  .admin-superior [data-abrir-menu] {
+    order: 1;
+    margin-left: 8px;
+    background: none;
+  }
+  .admin-superior-buscar {
+    display: none;
+  }
+  .admin-superior > a.admin-superior-boton {
+    order: 3;
+  }
+  .admin-superior-cuenta {
+    order: 4;
+  }
+  .admin-usuario .nombre,
+  .admin-usuario > .flecha {
+    display: none;
+  }
+  .admin-contenido {
+    padding: 20px 16px 32px;
+  }
+}
+/* El menú lateral dentro de la hoja (móvil) */
+.admin-hoja .admin-lateral {
+  position: static;
+  height: 100%;
+  box-shadow: none;
+}
+
+/* ---------- Contenido: las clases del tema reinterpretadas al estilo del panel ---------- */
+.admin-ui h1 {
+  color: var(--a-ink);
+  font-size: 24px !important;
+  line-height: 1.2;
+  font-weight: 700;
+}
+.admin-ui h2,
+.admin-ui h3 {
+  color: var(--a-ink);
+}
+.admin-ui .text-heading {
+  color: var(--a-ink);
+}
+.admin-ui .text-body {
+  color: var(--a-text);
+}
+.admin-ui .text-muted-foreground {
+  color: var(--a-muted);
+}
+.admin-ui .rounded-card {
+  border-radius: var(--a-radio);
+}
+.admin-ui .shadow-card {
+  box-shadow: var(--a-sombra);
+}
+/* Botones, pestañas y campos redondeados de la tienda → esquinas de 6 px como en el panel */
+.admin-ui .rounded-pill:not(.rounded-full) {
+  border-radius: var(--a-radio);
+}
+.admin-ui .border-line,
+.admin-ui .divide-line > :not(:last-child) {
+  border-color: var(--a-border);
+}
+.admin-ui .ring-line {
+  --tw-ring-color: var(--a-input);
+}
+.admin-ui .border-input {
+  border-color: var(--a-input);
+}
+.admin-ui .bg-muted {
+  background-color: var(--a-bg);
+}
+.admin-ui .bg-surface,
+.admin-ui .hover\:bg-surface:hover {
+  background-color: #fafbfc;
+}
+
+/* Tablas: las de todo el panel con las medidas de terza-sitio (listado.css). Van con !important porque cada página
+   trae su propio relleno con utilidades (px-5 py-3…) y aquí se unifican. */
+.admin-ui table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 15px;
+}
+.admin-ui th,
+.admin-ui td {
+  padding: 18px 16px !important;
+  text-align: left;
+  vertical-align: middle;
+}
+.admin-ui th:first-child,
+.admin-ui td:first-child {
+  padding-left: 32px !important;
+}
+.admin-ui th:last-child,
+.admin-ui td:last-child {
+  padding-right: 32px !important;
+}
+.admin-ui th.text-right,
+.admin-ui td.text-right {
+  text-align: right;
+}
+.admin-ui thead {
+  border: 0 !important;
+}
+.admin-ui thead th {
+  padding-top: 14px !important;
+  padding-bottom: 14px !important;
+  border-bottom: 1px solid var(--a-border);
+  background: #fcfcfd;
+  color: var(--a-ink);
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+.admin-ui tbody td {
+  border-top: 1px solid var(--a-border);
+}
+.admin-ui tbody tr:first-child td {
+  border-top: 0;
+}
+.admin-ui tbody {
+  border: 0 !important;
+}
+.admin-ui tbody > tr {
+  border: 0 !important;
+}
+.admin-ui tbody tr:hover {
+  background: #fafbfc;
+}
+/* Dato principal de la fila (número de pedido, producto, cliente): 16 px, seminegrita */
+.admin-ui tbody td:first-child > a:first-child,
+.admin-ui tbody td:first-child .font-semibold {
+  font-size: 16px;
+  line-height: 1.35;
+}
+
+/* Insignias de estado: esquinas de 4 px y sin contorno, como en UBold */
+.admin-ui .ring-inset.rounded-pill {
+  border-radius: 4px;
+  --tw-ring-color: transparent;
+}
+
+/* Campos de formulario */
+.admin-contenido input:not([type="checkbox"]):not([type="radio"]):not([type="file"]),
+.admin-contenido select,
+.admin-contenido textarea {
+  border-radius: var(--a-radio);
+  border-color: var(--a-input);
+}
+.admin-contenido input:focus-visible,
+.admin-contenido select:focus-visible,
+.admin-contenido textarea:focus-visible {
+  outline: 2px solid var(--a-teal-suave);
+  border-color: var(--a-teal);
+}
+
+/* En pantallas medianas las tablas se desplazan de lado en vez de cortar columnas, y el dato de la primera
+   columna (número de pedido, nombre) no se parte en dos renglones. */
+.admin-ui div:has(> table) {
+  overflow-x: auto;
+}
+.admin-ui tbody td:first-child > a:first-child {
+  white-space: nowrap;
+}
+
+/* ---------- Etiquetas de estado (insignias) con los colores de UBold / terza-sitio ----------
+   Fondo suave del mismo color que el texto, esquinas de 4 px, sin borde ni puntito. Van fuera de .admin-ui
+   porque también salen en ventanas (portales), como el detalle de pedido dentro de Clientes. */
+.insignia {
+  display: inline-flex;
+  align-items: center;
+  padding: 3px 10px;
+  border-radius: 4px;
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1.5;
+  white-space: nowrap;
+}
+.insignia.exito {
+  background: rgb(26 188 156 / 0.15);
+  color: #13967c;
+}
+.insignia.peligro {
+  background: rgb(241 85 108 / 0.15);
+  color: #f1556c;
+}
+.insignia.aviso {
+  background: rgb(247 184 75 / 0.18);
+  color: #f7b84b;
+}
+.insignia.info {
+  background: rgb(79 198 225 / 0.18);
+  color: #4fc6e1;
+}
+/* Mismo verde que .exito: en el panel todas las etiquetas verdes se ven iguales (como "Publicada"). */
+.insignia.terza {
+  background: rgb(26 188 156 / 0.15);
+  color: #13967c;
+}
+.insignia.gris {
+  background: rgb(108 117 125 / 0.12);
+  color: #6c757d;
+}
+
+/* Estados de pedido: colores de UBold / terza-sitio (los mismos de los puntos del historial, en order-status.ts),
+   con el fondo claro de ese color, como los círculos de las tarjetas de UBold. */
+.insignia.pedido.naranja {
+  --tono: #f7b84b; /* Por pagar */
+}
+.insignia.pedido.azul {
+  --tono: #4fc6e1; /* Pagado */
+}
+.insignia.pedido.morado {
+  --tono: #6658dd; /* Preparando */
+}
+.insignia.pedido.verde {
+  --tono: #1abc9c; /* Enviado */
+}
+.insignia.pedido.gris-pedido {
+  --tono: #6c757d; /* Entregado */
+}
+.insignia.pedido.rojo {
+  --tono: #f1556c; /* Cancelado */
+}
+.insignia.pedido {
+  background: color-mix(in srgb, var(--tono) 15%, white);
+  color: var(--tono);
+}

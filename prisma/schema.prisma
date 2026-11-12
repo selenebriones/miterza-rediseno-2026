@@ -451,7 +451,10 @@ model Order {
   id     String      @id @default(cuid()) // va en la URL de confirmación (no adivinable)
   number Int         @unique @default(autoincrement()) // número visible: MT-000123
   status OrderStatus @default(PENDING_PAYMENT)
-  userId String? // null = compra como invitado
+  userId String? // null = compra como invitado o cliente borrado
+  // Fecha en que el panel borró la cuenta del cliente. El pedido conserva sus datos (nombre, correo,
+  // dirección); esto solo distingue "Cliente borrado" de una compra sin cuenta.
+  customerDeletedAt DateTime?
 
   email     String
   phone     String

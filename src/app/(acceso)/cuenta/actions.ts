@@ -4,7 +4,7 @@ import { refresh } from "next/cache";
 import { AuthError } from "next-auth";
 import { signIn, signOut, updateSession } from "@/auth";
 import { normalizePhone } from "@/lib/checkout-validation";
-import { getSession } from "@/lib/session";
+import { getSession, getSessionState } from "@/lib/session";
 import { db } from "@/lib/db";
 import { hashPassword } from "@/lib/password";
 import { readReturnPath } from "@/lib/return-path";
@@ -93,6 +93,13 @@ export async function requestPasswordReset(_prev: RecoverState, formData: FormDa
   const email = String(formData.get("email") ?? "").trim();
   if (!EMAIL.test(email)) return { error: "Escribe un correo válido, por ejemplo nombre@correo.com.", email };
   return { sent: true, email };
+}
+
+// La cuenta de esta sesión se eliminó desde el panel: borra la cookie (sin redirigir) para que el navegador
+// vuelva a ser un visitante. Solo actúa si la cuenta de verdad ya no existe.
+export async function forgetDeletedAccount() {
+  const { accountDeleted } = await getSessionState();
+  if (accountDeleted) await signOut({ redirect: false });
 }
 
 export async function customerLogout() {

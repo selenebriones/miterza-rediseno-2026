@@ -1,7 +1,7 @@
 "use server";
 
 import { redirect } from "next/navigation";
-import { revalidateTag } from "next/cache";
+import { refresh, revalidateTag } from "next/cache";
 import { isAllowedImageUrl } from "@/lib/admin/images";
 import { authorize } from "@/lib/admin/session";
 import { CACHE_TAGS, db } from "@/lib/db";
@@ -97,4 +97,30 @@ export async function updateCategory(_prev: CategoryFormState, formData: FormDat
 
   revalidateTag(CACHE_TAGS.catalog, "max");
   redirect("/admin/categorias");
+}
+
+// Botón de eliminar del listado. Solo categorías vacías: con productos o subcategorías se perderían del menú y
+// del catálogo sin aviso, así que primero hay que moverlos.
+export async function deleteCategory(categoryId: string): Promise<{ ok: boolean; message: string }> {
+  const admin = await authorize("MANAGE_CATALOG");
+  if (!admin) return { ok: false, message: "Tu sesión ya no tiene permiso para editar el catálogo." };
+  if (!/^[a-z0-9]{20,40}$/.test(categoryId)) return { ok: false, message: "Categoría no válida." };
+
+  const category = await db.category.findUnique({
+    where: { id: categoryId },
+    select: { _count: { select: { products: true, children: true } } },
+  });
+  if (!category) return { ok: false, message: "No encontramos esta categoría." };
+  if (category._count.products > 0) {
+    return { ok: false, message: "Tiene productos: muévelos a otra categoría antes de eliminarla." };
+  }
+  if (category._count.children > 0) {
+    return { ok: false, message: "Tiene subcategorías: elimínalas o muévelas antes." };
+  }
+
+  await db.category.delete({ where: { id: categoryId } });
+  revalidateTag(CACHE_TAGS.catalog, "max");
+  revalidateTag(CACHE_TAGS.content, "max");
+  refresh();
+  return { ok: true, message: "Categoría eliminada." };
 }
