@@ -106,12 +106,12 @@ function PromoTile({ banner, size, className }: { banner: PromoBanner; size: "sm
           className={cn(
             "absolute top-3 left-3 flex flex-col items-center justify-center rounded-full bg-accent text-center leading-none font-bold text-brand uppercase shadow-lg lg:top-4 lg:left-4",
             badgeSize[size],
-            badgeText[size][banner.upTo ? 0 : 1],
+            badgeText[size][banner.discountPrefix || banner.discountSuffix ? 0 : 1],
           )}
         >
-          {banner.upTo && <small className="tracking-wide">Hasta</small>}
+          {banner.discountPrefix && <small className="tracking-wide">{banner.discountPrefix}</small>}
           <strong className="font-extrabold tracking-tight">{banner.discount}%</strong>
-          <small className="mt-0.5 tracking-wide">de ahorro</small>
+          {banner.discountSuffix && <small className="tracking-wide">{banner.discountSuffix}</small>}
         </span>
       )}
 

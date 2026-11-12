@@ -1,13 +1,15 @@
 import { getAnnouncement, getHeaderNavigation, getMenuProducts } from "@/lib/navigation";
 import { getPopularCategories } from "@/lib/search";
+import { getSiteContentSettings } from "@/lib/site-settings";
 import { AnnouncementBar } from "./announcement-bar";
 import { HeaderBar } from "./header-bar";
 
 export async function SiteHeader() {
-  const [navigation, announcement, popularCategories] = await Promise.all([
+  const [navigation, announcement, popularCategories, settings] = await Promise.all([
     getHeaderNavigation(),
     getAnnouncement(),
     getPopularCategories(),
+    getSiteContentSettings(),
   ]);
   // Productos de cada línea (o categoría sin líneas) para las tarjetas del mega menú.
   const menuProducts = await getMenuProducts(
@@ -24,10 +26,14 @@ export async function SiteHeader() {
       >
         Saltar al contenido
       </a>
-      <AnnouncementBar announcement={announcement} links={navigation.top} />
+      <AnnouncementBar announcement={announcement} links={navigation.top} supportPhone={settings.supportPhone} />
       <HeaderBar
         main={navigation.main}
         secondary={navigation.top}
+        supportPhone={settings.supportPhone}
+        supportEmail={settings.supportEmail}
+        logoUrl={settings.logoUrl}
+        headerActions={settings.headerActions}
         popularCategories={popularCategories}
         menuProducts={menuProducts}
       />

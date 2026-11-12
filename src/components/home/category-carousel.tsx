@@ -43,9 +43,9 @@ export function CategoryCarousel({ title, categories }: Props) {
                 <span className="mt-3 block text-sm leading-snug font-semibold text-heading transition-colors group-hover/cat:text-brand lg:text-base">
                   {category.name}
                 </span>
-                <span className="mt-0.5 block text-xs text-muted-foreground lg:text-sm">
+                {category.productCount !== null && <span className="mt-0.5 block text-xs text-muted-foreground lg:text-sm">
                   {category.productCount} {category.productCount === 1 ? "producto" : "productos"}
-                </span>
+                </span>}
               </Link>
             </CarouselItem>
           ))}

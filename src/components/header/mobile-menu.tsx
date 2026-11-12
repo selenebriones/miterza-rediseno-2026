@@ -2,26 +2,35 @@
 
 import Link from "next/link";
 import { useRef } from "react";
-import { ChevronRightIcon, HeartIcon, MailIcon, MenuIcon, PhoneIcon, SearchIcon, UserIcon } from "lucide-react";
+import { ChevronRightIcon, MailIcon, MenuIcon, PhoneIcon } from "lucide-react";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { Sheet, SheetClose, SheetContent, SheetDescription, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import type { NavItem } from "@/lib/navigation";
-import { storeConfig } from "@/lib/store-config";
+import type { HeaderActionSetting } from "@/lib/site-settings";
+import { normalizeHeaderActions } from "@/lib/header-actions";
+import { HeaderActionIcon } from "@/components/header/header-action-icon";
 import { cn, externalLinkProps } from "@/lib/utils";
 import { Logo } from "./logo";
 
 type Props = {
   main: NavItem[];
   secondary: NavItem[];
+  supportPhone: string;
+  supportEmail: string;
+  logoUrl: string;
+  headerActions: HeaderActionSetting[];
   onSearch: () => void;
 };
 
 const rowClass =
   "flex min-h-tap items-center justify-between gap-3 rounded-lg px-3 text-base font-medium text-heading hover:bg-surface active:bg-brand-50";
 
-export function MobileMenu({ main, secondary, onSearch }: Props) {
+export function MobileMenu({ main, secondary, supportPhone, supportEmail, logoUrl, headerActions, onSearch }: Props) {
   // Al pasar del menú a la búsqueda, el foco no debe regresar al botón del menú.
   const openingSearch = useRef(false);
+  const actions = normalizeHeaderActions(headerActions);
+  const getAction = (key: HeaderActionSetting["key"]) => actions.find((action) => action.key === key)!;
+  const isActionVisible = (key: HeaderActionSetting["key"]) => getAction(key).visible;
 
   return (
     <Sheet>
@@ -44,26 +53,27 @@ export function MobileMenu({ main, secondary, onSearch }: Props) {
       >
         <div className="flex h-header shrink-0 items-center border-b border-line px-4">
           <SheetClose asChild>
-            <Logo tone="color" />
+              <Logo tone="color" src={logoUrl} />
           </SheetClose>
         </div>
         <SheetTitle className="sr-only">Menú</SheetTitle>
         <SheetDescription className="sr-only">Categorías, información y cuenta</SheetDescription>
 
         <div className="flex-1 overflow-y-auto px-2 py-3">
-          <SheetClose asChild>
+          {isActionVisible("search") && <SheetClose asChild>
             <button
               type="button"
+              aria-label={getAction("search").label}
               onClick={() => {
                 openingSearch.current = true;
                 onSearch();
               }}
               className="mx-1 mb-3 flex h-11 w-[calc(100%-0.5rem)] items-center gap-3 rounded-pill bg-surface px-4 text-left text-muted-foreground"
             >
-              <SearchIcon className="size-5" aria-hidden="true" />
-              Buscar productos
+              <HeaderActionIcon icon={getAction("search").icon} className="size-5" />
+              {getAction("search").label}
             </button>
-          </SheetClose>
+          </SheetClose>}
 
           <nav aria-label="Categorías">
             <Accordion type="single" collapsible>
@@ -77,7 +87,7 @@ export function MobileMenu({ main, secondary, onSearch }: Props) {
                       <ul className="ml-3 border-l-2 border-surface pl-2">
                         <li>
                           <SheetClose asChild>
-                            <Link href={item.href} className={cn(rowClass, "font-semibold text-brand")}>
+                            <Link href={item.href} target={item.openInNewTab ? "_blank" : undefined} rel={item.openInNewTab ? "noopener noreferrer" : undefined} className={cn(rowClass, "font-semibold text-brand")}>
                               Ver todo en {item.label}
                               <ChevronRightIcon className="size-4" aria-hidden="true" />
                             </Link>
@@ -86,7 +96,7 @@ export function MobileMenu({ main, secondary, onSearch }: Props) {
                         {item.children.map((child) => (
                           <li key={child.id}>
                             <SheetClose asChild>
-                              <Link href={child.href} className={cn(rowClass, "font-normal")}>
+                              <Link href={child.href} target={child.openInNewTab ? "_blank" : undefined} rel={child.openInNewTab ? "noopener noreferrer" : undefined} className={cn(rowClass, "font-normal")}>
                                 {child.label}
                               </Link>
                             </SheetClose>
@@ -97,7 +107,7 @@ export function MobileMenu({ main, secondary, onSearch }: Props) {
                   </AccordionItem>
                 ) : (
                   <SheetClose asChild key={item.id}>
-                    <Link href={item.href} {...externalLinkProps(item.href)} className={rowClass}>
+                    <Link href={item.href} {...(item.openInNewTab ? { target: "_blank", rel: "noopener noreferrer" } : externalLinkProps(item.href))} className={rowClass}>
                       {item.isHighlight ? (
                         <span className="rounded-pill bg-accent px-3 py-1 text-brand">{item.label}</span>
                       ) : (
@@ -115,35 +125,35 @@ export function MobileMenu({ main, secondary, onSearch }: Props) {
           <nav aria-label="Información">
             {secondary.map((item) => (
               <SheetClose asChild key={item.id}>
-                <Link href={item.href} {...externalLinkProps(item.href)} className={cn(rowClass, "font-normal")}>
+                <Link href={item.href} {...(item.openInNewTab ? { target: "_blank", rel: "noopener noreferrer" } : externalLinkProps(item.href))} className={cn(rowClass, "font-normal")}>
                   {item.label}
                 </Link>
               </SheetClose>
             ))}
-            <SheetClose asChild>
-              <Link href="/cuenta" className={cn(rowClass, "justify-start font-normal")}>
-                <UserIcon className="size-5 text-brand" aria-hidden="true" />
-                Mi cuenta
+            {isActionVisible("account") && <SheetClose asChild>
+              <Link href={getAction("account").href ?? "/cuenta"} aria-label={getAction("account").label} className={cn(rowClass, "justify-start font-normal")}>
+                <HeaderActionIcon icon={getAction("account").icon} className="size-5 text-brand" />
+                {getAction("account").label}
               </Link>
-            </SheetClose>
-            <SheetClose asChild>
-              <Link href="/favoritos" className={cn(rowClass, "justify-start font-normal")}>
-                <HeartIcon className="size-5 text-brand" aria-hidden="true" />
-                Favoritos
+            </SheetClose>}
+            {isActionVisible("favorites") && <SheetClose asChild>
+              <Link href={getAction("favorites").href ?? "/favoritos"} aria-label={getAction("favorites").label} className={cn(rowClass, "justify-start font-normal")}>
+                <HeaderActionIcon icon={getAction("favorites").icon} className="size-5 text-brand" />
+                {getAction("favorites").label}
               </Link>
-            </SheetClose>
+            </SheetClose>}
           </nav>
         </div>
 
         <div className="shrink-0 bg-surface px-5 pt-4 pb-[max(1rem,env(safe-area-inset-bottom))]">
           <p className="text-sm font-semibold text-heading">¿Necesitas ayuda?</p>
-          <a href={storeConfig.supportPhoneHref} className="flex min-h-tap items-center gap-2 text-brand">
+          <a href={`tel:${supportPhone.replace(/[^+\d]/g, "")}`} className="flex min-h-tap items-center gap-2 text-brand">
             <PhoneIcon className="size-4" aria-hidden="true" />
-            {storeConfig.supportPhone}
+            {supportPhone}
           </a>
-          <a href={`mailto:${storeConfig.supportEmail}`} className="-mt-2 flex min-h-tap items-center gap-2 text-brand">
+          <a href={`mailto:${supportEmail}`} className="-mt-2 flex min-h-tap items-center gap-2 text-brand">
             <MailIcon className="size-4" aria-hidden="true" />
-            {storeConfig.supportEmail}
+            {supportEmail}
           </a>
         </div>
       </SheetContent>

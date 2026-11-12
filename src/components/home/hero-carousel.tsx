@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { getImageProps } from "next/image";
+import Image from "next/image";
 import { useEffect, useState } from "react";
 import { PauseIcon, PlayIcon } from "lucide-react";
 import { Carousel, CarouselContent, CarouselItem, type CarouselApi } from "@/components/ui/carousel";
@@ -106,32 +106,20 @@ export function HeroCarousel({ banners }: { banners: HeroBanner[] }) {
 }
 
 function Slide({ banner, active, priority }: { banner: HeroBanner; active: boolean; priority: boolean }) {
-  // Imagen distinta por tamaño de pantalla: se usa fetchPriority en lugar de `preload` (recomendación de Next 16).
-  const common = {
-    alt: banner.imageAlt,
-    sizes: "100vw",
-    fill: true as const,
-    loading: priority ? ("eager" as const) : ("lazy" as const),
-    fetchPriority: priority ? ("high" as const) : undefined,
-  };
-  const {
-    props: { srcSet: desktopSrcSet },
-  } = getImageProps({ ...common, src: banner.imageDesktop });
-  const {
-    props: { srcSet: mobileSrcSet, ...imgProps },
-  } = getImageProps({ ...common, src: banner.imageMobile ?? banner.imageDesktop });
-
   return (
     <div
       data-active={active}
       className="group/slide relative flex h-[30rem] items-center justify-center overflow-hidden bg-brand sm:h-[34rem] lg:h-[38rem]"
     >
-      <picture className="absolute inset-0">
-        <source media="(min-width: 1024px)" srcSet={desktopSrcSet} />
-        <source srcSet={mobileSrcSet} />
-        {/* eslint-disable-next-line jsx-a11y/alt-text -- el alt viene en imgProps */}
-        <img {...imgProps} className="object-cover group-data-[active=true]/slide:animate-hero-zoom" />
-      </picture>
+      <Image
+        src={banner.imageDesktop}
+        alt={banner.imageAlt}
+        fill
+        sizes="100vw"
+        loading={priority ? "eager" : "lazy"}
+        fetchPriority={priority ? "high" : undefined}
+        className="object-cover group-data-[active=true]/slide:animate-hero-zoom"
+      />
       {/* Velo para que el texto blanco se lea sobre cualquier foto. */}
       <div aria-hidden="true" className="absolute inset-0 bg-gradient-to-b from-black/30 via-black/35 to-black/50" />
 

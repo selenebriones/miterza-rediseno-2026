@@ -107,10 +107,22 @@ export function toSummary(row: SummaryRow, now = Date.now()): ProductSummary {
 
 // Productos del slider "Nuevos productos" del home: los más recientes de cada categoría (los marcados
 // como nuevos primero), intercalados (uno de cada categoría por vuelta) para que aparezcan todas.
-export async function getFeaturedProducts(limit = 12) {
+export async function getFeaturedProducts(limit = 12, selectedSlugs: string[] = []) {
   "use cache";
   cacheLife("hours");
   cacheTag(CACHE_TAGS.catalog);
+
+  if (selectedSlugs.length) {
+    const rows = await db.product.findMany({
+      where: { status: "ACTIVE", slug: { in: selectedSlugs } },
+      select: productSummarySelect,
+    });
+    const order = new Map(selectedSlugs.map((slug, index) => [slug, index]));
+    const now = Date.now();
+    return rows
+      .sort((a, b) => (order.get(a.slug) ?? 999) - (order.get(b.slug) ?? 999))
+      .map((row) => toSummary(row, now));
+  }
 
   // Categorías finales: las subcategorías y las secciones sin subcategorías (Accesorios).
   const categories = await db.category.findMany({

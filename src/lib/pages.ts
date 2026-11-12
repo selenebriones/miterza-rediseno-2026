@@ -2,6 +2,7 @@
 
 import { cacheLife, cacheTag } from "next/cache";
 import { CACHE_TAGS, db } from "./db";
+import { sanitizePolicyHtml } from "./policy-html";
 
 export type PolicyPage = {
   slug: string;
@@ -26,8 +27,9 @@ export async function getPolicy(slug: string): Promise<PolicyPage | null> {
   cacheLife("hours");
   cacheTag(CACHE_TAGS.content);
 
-  return db.page.findFirst({
+  const page = await db.page.findFirst({
     where: { slug, type: "POLICY", isPublished: true },
     select: { slug: true, title: true, content: true, seoTitle: true, seoDescription: true, updatedAt: true },
   });
+  return page ? { ...page, content: sanitizePolicyHtml(page.content) } : null;
 }

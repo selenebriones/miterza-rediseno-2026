@@ -19,7 +19,7 @@ const ALLOWED_PERMISSIONS = new Set<AdminPermission>(ADMIN_NAV.map((item) => ite
 function parseCore(formData: FormData) {
   const name = String(formData.get("name") ?? "").trim().slice(0, 120);
   const email = String(formData.get("email") ?? "").trim().toLowerCase().slice(0, 254);
-  if (!name) throw new AdministratorFormError("Escribe el nombre del administrador.");
+  if (!name) throw new AdministratorFormError("Escribe el nombre del usuario.");
   if (!EMAIL.test(email)) throw new AdministratorFormError("Escribe un correo válido, por ejemplo nombre@correo.com.");
 
   const permissions = formData
@@ -33,8 +33,8 @@ function saveErrorMessage(error: unknown) {
   if ((error as { code?: string } | null)?.code === "P2002") {
     return "Ya existe una cuenta con ese correo.";
   }
-  console.error("Error al guardar el administrador", error);
-  return "No pudimos guardar el administrador. Intenta de nuevo.";
+  console.error("Error al guardar el usuario del panel", error);
+  return "No pudimos guardar el usuario. Intenta de nuevo.";
 }
 
 export async function createAdministrator(
@@ -77,7 +77,7 @@ export async function updateAdministrator(
   if (!admin) return { status: "error", message: "Tu sesión ya no puede administrar usuarios." };
 
   const userId = String(formData.get("userId") ?? "");
-  if (!/^[a-z0-9]{20,40}$/.test(userId)) return { status: "error", message: "Administrador no válido." };
+  if (!/^[a-z0-9]{20,40}$/.test(userId)) return { status: "error", message: "Usuario no válido." };
 
   let data: ReturnType<typeof parseCore>;
   try {
@@ -91,12 +91,12 @@ export async function updateAdministrator(
     return { status: "error", message: "No puedes desactivar tu propia cuenta." };
   }
   if (userId === admin.id && !data.permissions.includes("SUPER_ADMIN")) {
-    return { status: "error", message: "No puedes quitarte tu propio acceso a Administradores." };
+    return { status: "error", message: "No puedes quitarte tu propio permiso de Superadministrador." };
   }
 
   try {
     const updated = await db.user.updateMany({ where: { id: userId, role: "ADMIN" }, data });
-    if (updated.count === 0) return { status: "error", message: "No encontramos este administrador." };
+    if (updated.count === 0) return { status: "error", message: "No encontramos este usuario del panel." };
   } catch (error) {
     return { status: "error", message: saveErrorMessage(error) };
   }

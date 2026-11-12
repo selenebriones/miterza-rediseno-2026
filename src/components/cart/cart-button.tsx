@@ -1,14 +1,15 @@
 "use client";
 
-import { ShoppingBagIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { HeaderActionIcon } from "@/components/header/header-action-icon";
+import type { HeaderIconKey } from "@/lib/header-actions";
 import { useCart } from "./cart-provider";
 
 // Círculo lima con el ícono de la bolsa y el contador, a juego con los demás botones del header.
-export function CartButton() {
+export function CartButton({ icon = "shopping-bag", label: actionLabel = "Carrito" }: { icon?: HeaderIconKey; label?: string } = {}) {
   const { count, setOpen, bumpKey, hydrated } = useCart();
   const shown = hydrated ? count : 0;
-  const label = shown === 0 ? "Carrito vacío" : `Carrito, ${shown} ${shown === 1 ? "producto" : "productos"}`;
+  const label = shown === 0 ? `${actionLabel}, vacío` : `${actionLabel}, ${shown} ${shown === 1 ? "producto" : "productos"}`;
 
   return (
     <button
@@ -21,7 +22,7 @@ export function CartButton() {
         "lg:size-12",
       )}
     >
-      <ShoppingBagIcon className="size-5 lg:size-[1.375rem]" strokeWidth={1.75} aria-hidden="true" />
+      <HeaderActionIcon icon={icon} className="size-5 lg:size-[1.375rem]" />
       {shown > 0 && (
         <span
           key={bumpKey}
