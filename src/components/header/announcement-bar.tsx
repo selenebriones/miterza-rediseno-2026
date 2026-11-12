@@ -4,7 +4,6 @@ import Link from "next/link";
 import { PhoneIcon, XIcon } from "lucide-react";
 import type { Announcement, NavItem } from "@/lib/navigation";
 import { useLocalStorage } from "@/hooks/use-local-storage";
-import { storeConfig } from "@/lib/store-config";
 import { cn, externalLinkProps } from "@/lib/utils";
 
 const DISMISS_KEY = "miterza-announcement-dismissed";
@@ -12,11 +11,12 @@ const DISMISS_KEY = "miterza-announcement-dismissed";
 type Props = {
   announcement: Announcement | null;
   links: NavItem[];
+  supportPhone: string;
 };
 
 // Fuera del header fijo: al bajar se va con la página, sin JavaScript de por medio.
 // En móvil solo muestra el aviso; en desktop además los enlaces de información.
-export function AnnouncementBar({ announcement, links }: Props) {
+export function AnnouncementBar({ announcement, links, supportPhone }: Props) {
   const [dismissedId, setDismissedId] = useLocalStorage<string | null>(DISMISS_KEY, null);
   const dismissed = announcement !== null && dismissedId === announcement.id;
 
@@ -47,13 +47,13 @@ export function AnnouncementBar({ announcement, links }: Props) {
 
         <nav aria-label="Información" className="hidden items-center gap-5 lg:flex">
           {links.map((link) => (
-            <Link key={link.id} href={link.href} {...externalLinkProps(link.href)} className="hover:underline hover:underline-offset-2">
+            <Link key={link.id} href={link.href} {...(link.openInNewTab ? { target: "_blank", rel: "noopener noreferrer" } : externalLinkProps(link.href))} className="hover:underline hover:underline-offset-2">
               {link.label}
             </Link>
           ))}
-          <a href={storeConfig.supportPhoneHref} className="flex items-center gap-1.5 font-medium hover:underline">
+          <a href={`tel:${supportPhone.replace(/[^+\d]/g, "")}`} className="flex items-center gap-1.5 font-medium hover:underline">
             <PhoneIcon className="size-3.5" aria-hidden="true" />
-            {storeConfig.supportPhone}
+            {supportPhone}
           </a>
         </nav>
 

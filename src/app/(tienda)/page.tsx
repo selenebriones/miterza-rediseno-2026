@@ -16,11 +16,13 @@ export const metadata: Metadata = {
 
 export default async function HomePage() {
   const sections = await getHomeSections();
-  const featuredLimit = sections.find((s) => s.type === "FEATURED_PRODUCTS")?.limit ?? 12;
+  const categoryItems = sections.find((s) => s.type === "CATEGORY_CAROUSEL")?.categoryItems ?? [];
+  const featuredSection = sections.find((s) => s.type === "FEATURED_PRODUCTS");
+  const featuredLimit = featuredSection?.productSlugs.length || featuredSection?.limit || 12;
   const [banners, categories, featured, promos] = await Promise.all([
     getHeroBanners(),
-    getHomeCategories(),
-    getFeaturedProducts(featuredLimit),
+    getHomeCategories(categoryItems),
+    getFeaturedProducts(featuredLimit, featuredSection?.productSlugs),
     getPromoBanners(),
   ]);
 

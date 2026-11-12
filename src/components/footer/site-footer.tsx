@@ -4,8 +4,8 @@ import { MailIcon, PhoneIcon } from "lucide-react";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { Logo } from "@/components/header/logo";
 import { getFooterNavigation } from "@/lib/navigation";
-import { storeConfig } from "@/lib/store-config";
 import { SocialIcon } from "./social-icons";
+import { getSiteContentSettings } from "@/lib/site-settings";
 
 const linkClass =
   "inline-flex min-h-tap items-center text-body transition-colors hover:text-brand hover:underline hover:underline-offset-4 lg:min-h-9";
@@ -17,39 +17,38 @@ async function getCurrentYear() {
 }
 
 export async function SiteFooter() {
-  const [groups, year] = await Promise.all([getFooterNavigation(), getCurrentYear()]);
+  const [groups, year, settings] = await Promise.all([getFooterNavigation(), getCurrentYear(), getSiteContentSettings()]);
 
   return (
     <footer className="mt-auto border-t border-line bg-cream text-body">
       <div className="container grid gap-10 py-12 lg:grid-cols-12 lg:gap-8 lg:py-16">
         {/* Marca y contacto: siempre visibles, es lo que más se busca en el footer. */}
         <div className="space-y-6 lg:col-span-4">
-          <Logo tone="color" className="h-10 lg:h-12" />
+          <Logo tone="color" src={settings.logoUrl} className="h-10 lg:h-12" />
           <p className="max-w-sm text-sm">
-            En Terza somos la empresa más importante en México y Latinoamérica en la producción y comercialización de
-            superficies, con más de 40 años de respaldo en el mercado.
+            {settings.footerDescription}
           </p>
 
           <div>
             <h2 className="text-base font-semibold text-heading">¿Necesitas ayuda?</h2>
             <ul className="mt-1">
               <li>
-                <a href={storeConfig.supportPhoneHref} className={`${linkClass} gap-2`}>
+                <a href={`tel:${settings.supportPhone.replace(/[^+\d]/g, "")}`} className={`${linkClass} gap-2`}>
                   <PhoneIcon className="size-4 text-brand" aria-hidden="true" />
-                  {storeConfig.supportPhone}
+                  {settings.supportPhone}
                 </a>
               </li>
               <li>
-                <a href={`mailto:${storeConfig.supportEmail}`} className={`${linkClass} gap-2`}>
+                <a href={`mailto:${settings.supportEmail}`} className={`${linkClass} gap-2`}>
                   <MailIcon className="size-4 text-brand" aria-hidden="true" />
-                  {storeConfig.supportEmail}
+                  {settings.supportEmail}
                 </a>
               </li>
             </ul>
           </div>
 
           <ul className="flex gap-2" aria-label="Redes sociales">
-            {storeConfig.social.map((item) => (
+            {settings.social.filter((item) => item.url).map((item) => (
               <li key={item.network}>
                 <a
                   href={item.url}
@@ -77,7 +76,7 @@ export async function SiteFooter() {
                   <ul>
                     {group.items.map((item) => (
                       <li key={item.id}>
-                        <Link href={item.href} {...externalLinkProps(item.href)} className={linkClass}>
+                        <Link href={item.href} {...(item.openInNewTab ? { target: "_blank", rel: "noopener noreferrer" } : externalLinkProps(item.href))} className={linkClass}>
                           {item.label}
                         </Link>
                       </li>
@@ -96,7 +95,7 @@ export async function SiteFooter() {
                 <ul className="mt-4">
                   {group.items.map((item) => (
                     <li key={item.id}>
-                      <Link href={item.href} {...externalLinkProps(item.href)} className={linkClass}>
+                      <Link href={item.href} {...(item.openInNewTab ? { target: "_blank", rel: "noopener noreferrer" } : externalLinkProps(item.href))} className={linkClass}>
                         {item.label}
                       </Link>
                     </li>
@@ -109,7 +108,7 @@ export async function SiteFooter() {
       </div>
 
       <div className="border-t border-line">
-        <p className="container py-6 text-sm">© {year} Terza. Todos los derechos reservados.</p>
+        <p className="container py-6 text-sm">© {year} {settings.footerCopyright}</p>
       </div>
     </footer>
   );

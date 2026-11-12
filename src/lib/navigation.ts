@@ -12,6 +12,7 @@ export type NavItem = {
   description?: string;
   categorySlug?: string; // si el elemento apunta a una categoría: sirve para buscar sus productos
   isHighlight?: boolean;
+  openInNewTab?: boolean;
   children?: NavItem[];
 };
 
@@ -39,6 +40,7 @@ const itemSelect = {
   linkType: true,
   url: true,
   isHighlight: true,
+  openInNewTab: true,
   category: { select: { slug: true, description: true } },
   page: { select: { slug: true, type: true } },
 } satisfies Prisma.MenuItemSelect;
@@ -61,6 +63,7 @@ function toNavItem(item: ItemRow): NavItem {
     description: item.category?.description ?? undefined,
     categorySlug: item.category?.slug,
     isHighlight: item.isHighlight,
+    openInNewTab: item.openInNewTab,
     children: item.children?.length ? item.children.map(toNavItem) : undefined,
   };
 }

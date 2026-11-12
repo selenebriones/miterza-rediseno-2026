@@ -65,6 +65,8 @@ export function DesktopNav({ items, products }: Props) {
               <li key={item.id} className="flex items-center" onMouseEnter={() => show(null)}>
                 <Link
                   href={item.href}
+                  target={item.openInNewTab ? "_blank" : undefined}
+                  rel={item.openInNewTab ? "noopener noreferrer" : undefined}
                   className={cn(
                     item.isHighlight
                       ? "inline-flex h-9 items-center rounded-full bg-accent px-5 text-sm font-semibold text-brand transition-colors hover:bg-accent-hover"

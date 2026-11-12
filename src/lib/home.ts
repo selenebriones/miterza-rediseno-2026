@@ -43,7 +43,11 @@ export type HomeSection = {
   items: ValuePropItem[];
   help: HelpBand | null;
   limit: number;
+  categoryItems: CategoryContentItem[];
+  productSlugs: string[];
 };
+
+export type CategoryContentItem = { title: string; imageUrl: string; imageAlt: string; href: string };
 
 export type HeroBanner = {
   id: string;
@@ -52,7 +56,6 @@ export type HeroBanner = {
   ctaLabel: string;
   ctaUrl: string;
   imageDesktop: string;
-  imageMobile: string | null;
   imageAlt: string;
   theme: "light" | "dark";
 };
@@ -63,7 +66,7 @@ export type HomeCategory = {
   href: string;
   imageUrl: string;
   imageAlt: string;
-  productCount: number; // productos activos (la categoría padre incluye los de sus líneas)
+  productCount: number | null; // null cuando la tarjeta usa un enlace personalizado
 };
 
 // Banner de "Nuestras promociones". El descuento no se captura: se calcula con las ofertas reales del
@@ -74,8 +77,9 @@ export type PromoBanner = {
   href: string;
   imageUrl: string;
   imageAlt: string;
+  discountPrefix: string;
+  discountSuffix: string;
   discount: number | null; // % de ahorro; null si el destino no tiene ofertas
-  upTo: boolean; // categoría: "Hasta N %"; producto: "N %"
 };
 
 const text = (value: unknown) => (typeof value === "string" && value.trim() ? value.trim() : null);
@@ -129,6 +133,8 @@ export async function getHomeSections(): Promise<HomeSection[]> {
       items: asArray<ValuePropItem>(settings.items),
       help: row.type === "INSTALL_GUIDE" ? toHelpBand(row.title, row.subtitle, settings) : null,
       limit: typeof settings.limit === "number" ? settings.limit : 12,
+      categoryItems: asArray<CategoryContentItem>(settings.categoryItems).filter((item) => text(item?.title) && text(item?.imageUrl) && text(item?.href)),
+      productSlugs: asArray<string>(settings.productSlugs).filter((slug) => typeof slug === "string"),
     };
   });
 }
@@ -159,20 +165,43 @@ export async function getHeroBanners(): Promise<HeroBanner[]> {
     ctaLabel: row.ctaLabel ?? "Ver más",
     ctaUrl: row.ctaUrl ?? "/productos",
     imageDesktop: row.imageDesktop!,
-    imageMobile: row.imageMobile,
     imageAlt: row.imageAlt ?? "",
     theme: row.theme === "dark" ? "dark" : "light",
   }));
 }
 
-// Categorías con showInHome e imagen, en el orden del menú: por sección y, dentro, por posición.
-export async function getHomeCategories(): Promise<HomeCategory[]> {
+// Las tarjetas configuradas en Contenido mandan; las categorías del catálogo son el respaldo inicial.
+export async function getHomeCategories(items: CategoryContentItem[] = []): Promise<HomeCategory[]> {
   "use cache";
   cacheLife("hours");
-  cacheTag(CACHE_TAGS.catalog);
+  cacheTag(CACHE_TAGS.content, CACHE_TAGS.catalog);
+
+  if (items.length) {
+    const categorySlug = (href: string) => {
+      try {
+        return new URL(href, "https://miterza.local").searchParams.get("categoria")?.split(",")[0] ?? null;
+      } catch {
+        return null;
+      }
+    };
+    const slugs = items.map((item) => categorySlug(item.href)).filter((slug): slug is string => Boolean(slug));
+    const counts = await db.category.findMany({
+      where: { slug: { in: slugs } },
+      select: { slug: true, _count: { select: { products: { where: { status: "ACTIVE" } } } } },
+    });
+    const countBySlug = new Map(counts.map((row) => [row.slug, row._count.products]));
+    return items.map((item, index) => ({
+      slug: `home-${index}`,
+      name: item.title,
+      href: item.href,
+      imageUrl: item.imageUrl,
+      imageAlt: item.imageAlt,
+      productCount: countBySlug.get(categorySlug(item.href) ?? "") ?? null,
+    }));
+  }
 
   const rows = await db.category.findMany({
-    where: { showInHome: true, isVisible: true, imageUrl: { not: null } },
+    where: { isVisible: true, imageUrl: { not: null }, showInHome: true },
     select: {
       slug: true,
       name: true,
@@ -184,12 +213,9 @@ export async function getHomeCategories(): Promise<HomeCategory[]> {
     },
   });
   return rows
-    .sort(
-      (a, b) =>
-        (a.parent?.position ?? a.position) - (b.parent?.position ?? b.position) ||
+    .sort((a, b) => (a.parent?.position ?? a.position) - (b.parent?.position ?? b.position) ||
         Number(Boolean(a.parent)) - Number(Boolean(b.parent)) ||
-        a.position - b.position,
-    )
+        a.position - b.position)
     .map((row) => ({
       slug: row.slug,
       // Las subcategorías ya traen su nombre completo ("Pisos vinílicos"), sin anteponer la sección.
@@ -204,7 +230,7 @@ export async function getHomeCategories(): Promise<HomeCategory[]> {
 const percentOff = (price: unknown, compareAt: unknown) => Math.round((1 - Number(price) / Number(compareAt)) * 100);
 
 // Mayor descuento vigente del destino: /productos/<slug> (producto) o /productos?categoria=<slug>.
-async function discountFor(href: string): Promise<{ discount: number | null; upTo: boolean }> {
+async function discountFor(href: string): Promise<{ discount: number | null; defaultUpTo: boolean }> {
   const url = new URL(href, "https://miterza.local");
   const productSlug = url.pathname.match(/^\/productos\/([^/]+)$/)?.[1];
   if (productSlug) {
@@ -214,7 +240,7 @@ async function discountFor(href: string): Promise<{ discount: number | null; upT
     });
     const off =
       p?.compareAtPrice && Number(p.compareAtPrice) > Number(p.price) ? percentOff(p.price, p.compareAtPrice) : 0;
-    return { discount: off > 0 ? off : null, upTo: false };
+    return { discount: off > 0 ? off : null, defaultUpTo: false };
   }
   const category = url.searchParams.get("categoria");
   // Una colección o línea dentro de la categoría (?coleccion=Terza Kids): solo cuentan sus ofertas.
@@ -232,7 +258,7 @@ async function discountFor(href: string): Promise<{ discount: number | null; upT
     select: { price: true, compareAtPrice: true },
   });
   const best = Math.max(0, ...offers.map((o) => percentOff(o.price, o.compareAtPrice)));
-  return { discount: best > 0 ? best : null, upTo: true };
+  return { discount: best > 0 ? best : null, defaultUpTo: true };
 }
 
 // Banners HOME_PROMO activos y vigentes, en orden, con su descuento calculado.
@@ -255,14 +281,21 @@ export async function getPromoBanners(): Promise<PromoBanner[]> {
     },
     orderBy: { position: "asc" },
   });
-  return Promise.all(
-    rows.map(async (row) => ({
+  return Promise.all(rows.map(async (row) => {
+      const manualDiscount = Number(row.subtitle);
+      const automaticDiscount = await discountFor(row.ctaUrl!);
+      const discount = Number.isInteger(manualDiscount) && manualDiscount > 0 && manualDiscount < 100
+        ? manualDiscount
+        : automaticDiscount.discount;
+      return {
       id: row.id,
       title: row.title,
       href: row.ctaUrl!,
       imageUrl: row.imageDesktop!,
       imageAlt: row.imageAlt ?? "",
-      ...(await discountFor(row.ctaUrl!)),
-    })),
-  );
+      discountPrefix: row.ctaLabel?.trim() ?? "",
+      discountSuffix: row.imageAlt?.startsWith("badge:") ? row.imageAlt.slice(6) : "de ahorro",
+      discount,
+    };
+  }));
 }

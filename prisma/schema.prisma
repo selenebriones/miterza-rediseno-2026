@@ -295,6 +295,13 @@ model MenuItem {
   @@index([menuId, parentId, position])
 }
 
+model SiteSettings {
+  id        String   @id @default("site")
+  content   Json
+  updatedAt DateTime @updatedAt
+}
+
+
 // ─────────────────────────────────────────────
 // Home
 // ─────────────────────────────────────────────

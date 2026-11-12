@@ -1,7 +1,7 @@
 // Reglas de las fotos que se suben desde el panel a Vercel Blob. Lo comparten la ruta de subida,
 // el botón del formulario y la validación al guardar el producto.
 
-export const IMAGE_FOLDERS = ["productos", "categorias"] as const;
+export const IMAGE_FOLDERS = ["productos", "categorias", "contenido"] as const;
 export type ImageFolder = (typeof IMAGE_FOLDERS)[number];
 
 export const IMAGE_TYPES = ["image/webp", "image/jpeg", "image/png", "image/avif"] as const;
